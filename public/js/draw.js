@@ -117,7 +117,6 @@ async function loadDrawing() {
     return;
   }
 
-  // Avoid overwriting canvas while the user is actively drawing a stroke
   if (isDrawing) {
     return;
   }

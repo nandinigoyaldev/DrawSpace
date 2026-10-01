@@ -1,8 +1,6 @@
 <?php
 
-/**
- * DrawSpace · Database Connection (PDO)
- */
+
 
 declare(strict_types=1);
 
