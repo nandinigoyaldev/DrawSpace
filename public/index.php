@@ -1,24 +1,4 @@
-<?php
 
-// ── Security headers ─────────────────────────────────────────────
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: DENY');
-header('Referrer-Policy: strict-origin-when-cross-origin');
-header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-header(
-    "Content-Security-Policy: default-src 'self'; " .
-    "img-src 'self' data:; style-src 'self'; script-src 'self'; " .
-    "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
-);
-
-$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-
-if ($isHttps) {
-    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-}
-
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

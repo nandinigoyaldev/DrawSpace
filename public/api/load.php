@@ -1,11 +1,6 @@
 <?php
 
-/**
- * DrawSpace · GET /api/load.php
- * Returns the current board state so polling clients can stay in sync.
- */
 
-declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -27,10 +22,10 @@ try {
 
     $row = $stmt->fetch();
 } catch (PDOException $e) {
-    // Clients keep their current board on a 5xx instead of wiping it.
     error_log('[DrawSpace] load failed: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Could not load drawing.']);
+    $msg = ($appDebug ?? false) ? ('Could not load drawing: ' . $e->getMessage()) : 'Could not load drawing.';
+    echo json_encode(['ok' => false, 'error' => $msg]);
     exit;
 }
 

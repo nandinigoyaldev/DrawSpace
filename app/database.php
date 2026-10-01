@@ -25,35 +25,100 @@ if (is_readable($envFile)) {
         $value = trim($value, " \t\"'");
 
         // Real environment variables always win over .env values.
-        if ($key !== '' && getenv($key) === false) {
+        if ($key !== '' && getenv($key) === false && !isset($_ENV[$key])) {
             putenv($key . '=' . $value);
             $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
         }
     }
 }
 
-$env = static function (string $name, string $default = ''): string {
-    $value = getenv($name);
-    return $value === false ? $default : $value;
+$getEnvVar = static function (string $name, string $default = ''): string {
+    if (isset($_ENV[$name]) && $_ENV[$name] !== '') {
+        return (string)$_ENV[$name];
+    }
+    if (isset($_SERVER[$name]) && $_SERVER[$name] !== '') {
+        return (string)$_SERVER[$name];
+    }
+    $val = getenv($name);
+    return ($val !== false && $val !== '') ? (string)$val : $default;
 };
 
-$host      = $env('DB_HOST', '127.0.0.1');
-$port      = $env('DB_PORT', '3306');
-$dbname    = $env('DB_NAME', 'drawspace');
-$username  = $env('DB_USER', 'drawspace_user');
-$password  = $env('DB_PASS', '');
-$appDebug  = strtolower($env('APP_DEBUG', 'false')) === 'true';
+// Check for full database URL (e.g. from Aiven, Railway, or Vercel: DATABASE_URL / MYSQL_URL)
+$databaseUrl = $getEnvVar('DATABASE_URL', $getEnvVar('MYSQL_URL', $getEnvVar('AIVEN_DATABASE_URL', '')));
+
+$host     = '127.0.0.1';
+$port     = '3306';
+$dbname   = 'drawspace';
+$username = 'drawspace_user';
+$password = '';
+$useSsl   = false;
+
+if ($databaseUrl !== '') {
+    $parsed = parse_url($databaseUrl);
+    if ($parsed !== false) {
+        $host     = $parsed['host'] ?? $host;
+        $port     = isset($parsed['port']) ? (string)$parsed['port'] : $port;
+        $username = isset($parsed['user']) ? urldecode($parsed['user']) : $username;
+        $password = isset($parsed['pass']) ? urldecode($parsed['pass']) : $password;
+        if (isset($parsed['path'])) {
+            $dbname = ltrim($parsed['path'], '/');
+        }
+        $useSsl = true; // URIs from cloud DB providers like Aiven require SSL
+    }
+} else {
+    $host     = $getEnvVar('DB_HOST', $getEnvVar('MYSQLHOST', '127.0.0.1'));
+    $port     = $getEnvVar('DB_PORT', $getEnvVar('MYSQLPORT', '3306'));
+    $dbname   = $getEnvVar('DB_NAME', $getEnvVar('MYSQLDATABASE', 'drawspace'));
+    $username = $getEnvVar('DB_USER', $getEnvVar('MYSQLUSER', 'drawspace_user'));
+    $password = $getEnvVar('DB_PASS', $getEnvVar('MYSQLPASSWORD', $getEnvVar('DB_PASSWORD', '')));
+    
+    // Auto-enable SSL if not on localhost, or if DB_SSL is explicitly set
+    $sslVar = strtolower($getEnvVar('DB_SSL', ''));
+    if ($sslVar === 'true' || $sslVar === '1' || ($host !== '127.0.0.1' && $host !== 'localhost' && $sslVar !== 'false')) {
+        $useSsl = true;
+    }
+}
+
+$appDebug = strtolower($getEnvVar('APP_DEBUG', 'false')) === 'true';
 
 try {
+    $pdoOptions = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    // Configure SSL for Aiven / Cloud MySQL databases
+    if ($useSsl) {
+        if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+            $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        }
+
+        $caPath = $getEnvVar('DB_SSL_CA', '');
+        if ($caPath !== '' && file_exists($caPath)) {
+            $pdoOptions[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+        } else {
+            // Check common system CA bundles if available
+            $systemCaCertBundles = [
+                '/etc/ssl/certs/ca-certificates.crt', // Debian/Ubuntu/Vercel Lambda
+                '/etc/pki/tls/certs/ca-bundle.crt',   // RedHat/CentOS/Amazon Linux
+                '/etc/ssl/cert.pem',                   // Alpine/macOS
+            ];
+            foreach ($systemCaCertBundles as $bundle) {
+                if (file_exists($bundle)) {
+                    $pdoOptions[PDO::MYSQL_ATTR_SSL_CA] = $bundle;
+                    break;
+                }
+            }
+        }
+    }
+
     $pdo = new PDO(
         "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
         $username,
         $password,
-        [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]
+        $pdoOptions
     );
 
     // Ensure the shared board table and initial row exist
@@ -65,15 +130,15 @@ try {
     );
     $pdo->exec("INSERT IGNORE INTO drawings (id, drawing_data) VALUES (1, '[]')");
 } catch (PDOException $e) {
-    // Full details go to the server log, never to the browser.
+    // Full details go to the server log
     error_log('[DrawSpace] DB connection failed: ' . $e->getMessage());
 
     http_response_code(500);
-    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Type: application/json; charset=utf-8');
 
-    if ($appDebug) {
-        die('Database connection failed: ' . $e->getMessage());
-    }
+    $errorMsg = $appDebug
+        ? 'Database connection failed: ' . $e->getMessage()
+        : 'Database connection failed. Please check Vercel environment variables & Aiven SSL settings.';
 
-    die('Database connection failed. Check the .env configuration on the server.');
+    die(json_encode(['ok' => false, 'error' => $errorMsg]));
 }

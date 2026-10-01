@@ -64,7 +64,7 @@ function stopDrawing() {
 
 async function saveDrawing() {
   try {
-    const response = await fetch("api/save.php", {
+    const response = await fetch("/api/save.php", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -73,7 +73,8 @@ async function saveDrawing() {
     });
 
     if (!response.ok) {
-      console.warn("Save failed:", response.status);
+      const errData = await response.json().catch(() => ({}));
+      console.warn("Save failed:", response.status, errData.error || response.statusText);
     }
   } catch (error) {
     console.warn("Save failed:", error);
@@ -84,12 +85,15 @@ async function loadDrawing() {
   let response;
 
   try {
-    response = await fetch("api/load.php");
+    response = await fetch("/api/load.php");
   } catch (error) {
+    console.warn("Load fetch failed:", error);
     return; // offline / transient — keep whatever is on screen
   }
 
   if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    console.warn("Load failed:", response.status, errData.error || response.statusText);
     return; // server hiccup — never wipe the local board over it
   }
 
@@ -102,6 +106,11 @@ async function loadDrawing() {
   }
 
   if (!Array.isArray(savedStrokes)) {
+    return;
+  }
+
+  // Avoid overwriting canvas while the user is actively drawing a stroke
+  if (isDrawing) {
     return;
   }
 

@@ -91,7 +91,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     fail(405, 'Method not allowed.');
 }
 
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$ip = 'unknown';
+if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+    $ip = trim($parts[0]);
+} elseif (!empty($_SERVER['REMOTE_ADDR'])) {
+    $ip = $_SERVER['REMOTE_ADDR'];
+}
 
 if (!allowSave($ip, 120, 60)) {
     header('Retry-After: 60');
@@ -128,7 +134,8 @@ try {
     ]);
 } catch (PDOException $e) {
     error_log('[DrawSpace] save failed: ' . $e->getMessage());
-    fail(500, 'Could not save drawing.');
+    $msg = ($appDebug ?? false) ? ('Could not save drawing: ' . $e->getMessage()) : 'Could not save drawing.';
+    fail(500, $msg);
 }
 
 echo json_encode(['ok' => true]);
