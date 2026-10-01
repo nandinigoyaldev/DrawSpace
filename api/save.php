@@ -131,7 +131,11 @@ if (!isValidDrawing($strokes)) {
     fail(400, 'Invalid drawing data.');
 }
 
-require_once __DIR__ . '/../app/database.php';
+if (file_exists(__DIR__ . '/database.php')) {
+    require_once __DIR__ . '/database.php';
+} else {
+    require_once __DIR__ . '/../app/database.php';
+}
 
 try {
     // Store the validated, re-encoded payload — never the raw request body.
