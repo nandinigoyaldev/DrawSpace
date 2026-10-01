@@ -70,14 +70,14 @@
 
 ## 🛠️ Tech stack
 
-| Layer     | Choice        | Why                                 |
-| --------- | ------------- | ----------------------------------- |
-| Frontend  | Vanilla JS + Canvas API | Zero dependencies, instant load |
-| Styling   | Plain CSS     | No framework tax                    |
-| Backend   | PHP 8 + PDO   | Dead simple for a small shared app  |
-| Storage   | MySQL         | Reliable persistence for strokes    |
-| Config    | `.env`        | Secrets stay out of git             |
-| Realtime  | Polling *(now)* → WebSockets *(soon)* | Ship today, scale tomorrow |
+| Layer    | Choice                                | Why                                |
+| -------- | ------------------------------------- | ---------------------------------- |
+| Frontend | Vanilla JS + Canvas API               | Zero dependencies, instant load    |
+| Styling  | Plain CSS                             | No framework tax                   |
+| Backend  | PHP 8 + PDO                           | Dead simple for a small shared app |
+| Storage  | MySQL                                 | Reliable persistence for strokes   |
+| Config   | `.env`                                | Secrets stay out of git            |
+| Realtime | Polling _(now)_ → WebSockets _(soon)_ | Ship today, scale tomorrow         |
 
 ## 📁 Project structure
 
@@ -106,115 +106,8 @@ DrawSpace/
 ```
 
 **Why this layout?** Everything the browser needs lives in `public/`; everything else
-(`app/`) sits *outside* the document root, so even a misconfigured server can't leak
+(`app/`) sits _outside_ the document root, so even a misconfigured server can't leak
 your database credentials.
-
-## 🚀 Getting started
-
-### Prerequisites
-
-- PHP 8.x (with the PDO MySQL extension)
-- MySQL 8 (or MariaDB)
-- A web server — Apache/Nginx, or just the built-in PHP dev server
-
-### 1. Clone
-
-```bash
-git clone https://github.com/<your-username>/DrawSpace.git
-cd DrawSpace
-```
-
-### 2. Create the database
-
-```sql
-CREATE DATABASE drawspace CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE drawspace;
-
--- One shared board: row with id = 1 always exists and holds the whole stroke list
-CREATE TABLE drawings (
-  id           INT UNSIGNED NOT NULL PRIMARY KEY,
-  drawing_data LONGTEXT     NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO drawings (id, drawing_data) VALUES (1, '[]');
-```
-
-### 3. Configure
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`:
-
-```env
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=drawspace
-DB_USER=drawspace_user
-DB_PASS=your_password
-APP_ENV=development
-APP_DEBUG=true
-```
-
-`app/database.php` reads these values — no credentials ever live in tracked files.
-`.env` is already in `.gitignore`.
-
-### 4. Run locally
-
-The **document root must be `public/`**:
-
-```bash
-# PHP built-in server (note the -t flag)
-php -S localhost:8000 -t public
-```
-
-Open **http://localhost:8000** in two browser windows and start drawing in one —
-watch it show up in the other. 🎉
-
-## 🌍 Hosting / Deployment
-
-### Apache + cPanel / shared hosting
-
-1. Upload the repo so your account looks like:
-   ```
-   home/youruser/
-   ├── public_html/      ← symlink or point the domain at …/DrawSpace/public
-   └── DrawSpace/
-       ├── public/
-       ├── app/
-       └── .env
-   ```
-2. In **cPanel → MultiPHP Manager / Apache config**, set the document root to
-   `DrawSpace/public` — or simply copy the contents of `public/` into `public_html/`
-   and keep `app/` one level above it.
-3. `public/.htaccess` is already included (directory-index off, `.env`/dotfiles blocked,
-   optional `/save` → `/api/save.php` rewrites). Enable **Override** in Apache if 404s appear.
-
-### Nginx + PHP-FPM
-
-```nginx
-server {
-    server_name drawspace.example.com;
-    root /var/www/DrawSpace/public;          # ← point at public/, not the repo root
-    index index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    }
-
-    # Never expose hidden files or env
-    location ~ /\. { deny all; }
-
-    location ~* \.(css|js)$ { expires 7d; access_log off; }
-}
-```
 
 ### Deployment checklist
 
@@ -227,11 +120,11 @@ server {
 
 ## 🔌 API
 
-| Method | Endpoint          | Body / Params                     | Description                         |
-| ------ | ----------------- | --------------------------------- | ----------------------------------- |
-| `GET`  | `/`               | —                                 | Renders the canvas                  |
-| `GET`  | `/api/load.php`   | —                                 | Returns the board as a strokes array |
-| `POST` | `/api/save.php`   | JSON `[[{x,y},…],…]` (full board) | Replaces the board state            |
+| Method | Endpoint        | Body / Params                     | Description                          |
+| ------ | --------------- | --------------------------------- | ------------------------------------ |
+| `GET`  | `/`             | —                                 | Renders the canvas                   |
+| `GET`  | `/api/load.php` | —                                 | Returns the board as a strokes array |
+| `POST` | `/api/save.php` | JSON `[[{x,y},…],…]` (full board) | Replaces the board state             |
 
 > With the shipped `.htaccess`, `/save` and `/load` also work as pretty aliases.
 > `save.php` rejects anything that isn't a stroke array (400), payloads over 1 MB (413),
@@ -263,6 +156,7 @@ curl http://localhost:8000/api/load.php
   ]
 ]
 ```
+
 </details>
 
 ## 🔒 Security notes
