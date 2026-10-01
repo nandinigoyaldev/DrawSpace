@@ -1,39 +1,31 @@
 <?php
 
-$host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: '127.0.0.1';
-$port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
-$dbname = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'draw_space';
+$host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
+$port = (int)($_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: 3306);
 $username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
 $password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
-$ssl = strtolower((string)($_ENV['DB_SSL'] ?? getenv('DB_SSL') ?: ''));
+$database = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'draw_space';
 
-$options = [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-];
+$conn = mysqli_init();
 
-if ($ssl === 'true' || ($ssl !== 'false' && $host !== '127.0.0.1' && $host !== 'localhost')) {
-    if (defined('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')) {
-        $options[\Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT] = false;
-    } elseif (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
-        @$options[constant('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')] = false;
+if ($host !== 'localhost' && $host !== '127.0.0.1') {
+    mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
+    mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, MYSQLI_CLIENT_SSL);
+} else {
+    mysqli_real_connect($conn, $host, $username, $password, $database, $port);
+}
+
+if (mysqli_connect_errno() === 1049 && $database !== 'defaultdb') {
+    $conn = mysqli_init();
+    if ($host !== 'localhost' && $host !== '127.0.0.1') {
+        mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
+        mysqli_real_connect($conn, $host, $username, $password, 'defaultdb', $port, NULL, MYSQLI_CLIENT_SSL);
+    } else {
+        mysqli_real_connect($conn, $host, $username, $password, 'defaultdb', $port);
     }
 }
 
-try {
-    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password, $options);
-} catch (PDOException $e) {
-    if ((int)$e->getCode() === 1049 && $dbname !== 'defaultdb') {
-        try {
-            $pdo = new PDO("mysql:host=$host;port=$port;dbname=defaultdb;charset=utf8mb4", $username, $password, $options);
-        } catch (PDOException $err) {
-            http_response_code(500);
-            echo json_encode(['error' => $err->getMessage()]);
-            exit;
-        }
-    } else {
-        http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
-        exit;
-    }
+if (mysqli_connect_errno()) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Connection failed: ' . mysqli_connect_error()]));
 }
