@@ -40,7 +40,7 @@
 - 🔗 **One URL, one canvas** — anyone you send the link to lands on the exact same board
 - 👥 **Multiplayer drawing** — several people can sketch at the same time
 - 🔄 **Live sync** — strokes made by others appear on your screen while you watch
-- 🖌️ **Simple tools** — freehand pen, color picker, brush size, clear board
+- 🖌️ **Zero friction** — no accounts, no build step; open the link and draw
 - 💾 **Persistent canvas** — the board is saved, so refreshing (or coming back later) keeps the drawing
 - 🪶 **Featherweight** — plain PHP + vanilla JS + CSS. No build step, no framework, no npm install
 - 📁 **Host-ready layout** — `public/` is the web root, app logic and config stay off the internet
@@ -130,14 +130,13 @@ cd DrawSpace
 CREATE DATABASE drawspace CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE drawspace;
 
-CREATE TABLE strokes (
-  id        INT AUTO_INCREMENT PRIMARY KEY,
-  color     VARCHAR(20)  NOT NULL,
-  width     TINYINT      NOT NULL DEFAULT 3,
-  path      LONGTEXT     NOT NULL,
-  user_id   VARCHAR(64)  NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- One shared board: row with id = 1 always exists and holds the whole stroke list
+CREATE TABLE drawings (
+  id           INT UNSIGNED NOT NULL PRIMARY KEY,
+  drawing_data LONGTEXT     NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO drawings (id, drawing_data) VALUES (1, '[]');
 ```
 
 ### 3. Configure
@@ -231,34 +230,38 @@ server {
 | Method | Endpoint          | Body / Params                     | Description                         |
 | ------ | ----------------- | --------------------------------- | ----------------------------------- |
 | `GET`  | `/`               | —                                 | Renders the canvas                  |
-| `GET`  | `/api/load.php`   | `since=<stroke id>` *(optional)*  | Returns strokes drawn since `since` |
-| `POST` | `/api/save.php`   | `color`, `width`, `path`, `user`  | Persists a new stroke               |
+| `GET`  | `/api/load.php`   | —                                 | Returns the board as a strokes array |
+| `POST` | `/api/save.php`   | JSON `[[{x,y},…],…]` (full board) | Replaces the board state            |
 
 > With the shipped `.htaccess`, `/save` and `/load` also work as pretty aliases.
+> `save.php` rejects anything that isn't a stroke array (400), payloads over 1 MB (413),
+> non-`POST` requests (405) and more than 120 saves per minute per IP (429).
 
 <details>
 <summary><b>Example request / response</b></summary>
 
 ```bash
 curl -X POST http://localhost:8000/api/save.php \
-  -d 'color=%237C3AED&width=4&path=10,10;20,25;35,40'
+  -H 'Content-Type: application/json' \
+  -d '[[{"x":10,"y":10},{"x":20,"y":25},{"x":35,"y":40}]]'
 ```
 
 ```json
-{ "ok": true, "id": 42 }
+{ "ok": true }
 ```
 
 ```bash
-curl "http://localhost:8000/api/load.php?since=42"
+curl http://localhost:8000/api/load.php
 ```
 
 ```json
-{
-  "ok": true,
-  "strokes": [
-    { "id": 43, "color": "#FF5733", "width": 3, "path": "5,5;15,18" }
+[
+  [
+    { "x": 10, "y": 10 },
+    { "x": 20, "y": 25 },
+    { "x": 35, "y": 40 }
   ]
-}
+]
 ```
 </details>
 
@@ -266,8 +269,11 @@ curl "http://localhost:8000/api/load.php?since=42"
 
 - Credentials live in `.env`, which is **git-ignored** — commit `.env.example` only
 - `app/` sits outside the document root **and** carries a deny-all `.htaccess`
-- Use **prepared statements** (PDO) for every query — never string-concatenate SQL
-- Validate `color`, `width` and `path` server-side before inserting
+- **Prepared statements** (PDO) for every query, with emulation disabled
+- `save.php` **validates the payload** (stroke-array shape + 1 MB cap), stores only the
+  re-encoded, validated data — never the raw request body — and is **rate-limited** per IP
+- API failures return JSON with generic messages; real errors go to the **server log**, not the browser
+- `index.php` sends **CSP / `X-Frame-Options` / `nosniff` / Referrer-Policy** headers (plus HSTS on HTTPS)
 - Serve over **HTTPS** in production
 
 ## 🗺️ Roadmap
@@ -282,7 +288,8 @@ curl "http://localhost:8000/api/load.php?since=42"
 - [ ] 👤 Anonymous avatars so you can tell who drew what
 - [ ] 📄 Multiple rooms — `/room/design`, `/room/brainstorm`
 - [ ] 📝 Text tool, shapes, and an image layer
-- [ ] 🛡️ Rate limiting + input validation hardening
+- [x] 🛡️ Rate limiting + input validation hardening
+- [ ] 🔐 Optional write password (protect the board from strangers)
 - [ ] ⚡ Docker image + live demo
 
 > Got an idea? Open an [issue](../../issues) or a [pull request](../../pulls) — see below. 👇
