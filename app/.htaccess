@@ -1,6 +1,0 @@
-# ── DrawSpace · lock down the app folder ──────────────────────────
-# app/ should live OUTSIDE the document root. This file is a safety
-# net for hosts where that isn't possible (e.g. everything must sit
-# inside public_html).
-
-Require all denied

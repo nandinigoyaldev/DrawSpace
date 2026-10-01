@@ -55,6 +55,15 @@ try {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
+
+    // Ensure the shared board table and initial row exist
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS drawings (
+            id INT UNSIGNED NOT NULL PRIMARY KEY,
+            drawing_data LONGTEXT NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    $pdo->exec("INSERT IGNORE INTO drawings (id, drawing_data) VALUES (1, '[]')");
 } catch (PDOException $e) {
     // Full details go to the server log, never to the browser.
     error_log('[DrawSpace] DB connection failed: ' . $e->getMessage());
