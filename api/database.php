@@ -8,6 +8,10 @@
  * stored in a tracked file.
  */
 
+// Suppress deprecated warnings and display_errors from corrupting JSON payloads
+@ini_set('display_errors', '0');
+@error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 $envFile = dirname(__DIR__) . '/.env';
 
 if (is_readable($envFile)) {
@@ -91,8 +95,10 @@ try {
 
     // Configure SSL for Aiven / Cloud MySQL databases
     if ($useSsl) {
-        if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
-            $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        if (defined('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')) {
+            $pdoOptions[\Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        } elseif (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+            @$pdoOptions[constant('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')] = false;
         }
 
         $caPath = $getEnvVar('DB_SSL_CA', '');
@@ -114,12 +120,41 @@ try {
         }
     }
 
-    $pdo = new PDO(
-        "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
-        $username,
-        $password,
-        $pdoOptions
-    );
+    // Attempt primary connection
+    $pdo = null;
+    try {
+        $pdo = new PDO(
+            "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
+            $username,
+            $password,
+            $pdoOptions
+        );
+    } catch (PDOException $e) {
+        // If the database doesn't exist (e.g. Aiven uses 'defaultdb' instead of 'drawspace')
+        if ((int)$e->getCode() === 1049 || str_contains($e->getMessage(), 'Unknown database')) {
+            // Try connecting to defaultdb (Aiven standard)
+            try {
+                $pdo = new PDO(
+                    "mysql:host=$host;port=$port;dbname=defaultdb;charset=utf8mb4",
+                    $username,
+                    $password,
+                    $pdoOptions
+                );
+            } catch (PDOException $e2) {
+                // If defaultdb fails too, try connecting without dbname and create it
+                $pdo = new PDO(
+                    "mysql:host=$host;port=$port;charset=utf8mb4",
+                    $username,
+                    $password,
+                    $pdoOptions
+                );
+                $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname`");
+                $pdo->exec("USE `$dbname`");
+            }
+        } else {
+            throw $e;
+        }
+    }
 
     // Ensure the shared board table and initial row exist
     $pdo->exec(
@@ -130,7 +165,6 @@ try {
     );
     $pdo->exec("INSERT IGNORE INTO drawings (id, drawing_data) VALUES (1, '[]')");
 } catch (PDOException $e) {
-    // Full details go to the server log
     error_log('[DrawSpace] DB connection failed: ' . $e->getMessage());
 
     http_response_code(500);

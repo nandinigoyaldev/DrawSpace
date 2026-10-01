@@ -7,8 +7,12 @@
 
 declare(strict_types=1);
 
+@ini_set('display_errors', '0');
+@error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Access-Control-Allow-Origin: *');
 
 $envFile = dirname(__DIR__) . '/.env';
 
@@ -111,18 +115,37 @@ try {
         PDO::ATTR_TIMEOUT            => 5,
     ];
 
-    if ($useSsl && defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
-        $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    if ($useSsl) {
+        if (defined('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')) {
+            $pdoOptions[\Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT] = false;
+        } elseif (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+            @$pdoOptions[constant('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')] = false;
+        }
     }
 
-    $pdo = new PDO(
-        "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
-        $username,
-        $password,
-        $pdoOptions
-    );
-
-    $report['connection'] = 'SUCCESS: Connected to database successfully.';
+    $pdo = null;
+    try {
+        $pdo = new PDO(
+            "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4",
+            $username,
+            $password,
+            $pdoOptions
+        );
+        $report['connection'] = "SUCCESS: Connected to database `$dbname`.";
+    } catch (PDOException $e) {
+        if ((int)$e->getCode() === 1049 || str_contains($e->getMessage(), 'Unknown database')) {
+            // Try connecting to defaultdb (Aiven standard)
+            $pdo = new PDO(
+                "mysql:host=$host;port=$port;dbname=defaultdb;charset=utf8mb4",
+                $username,
+                $password,
+                $pdoOptions
+            );
+            $report['connection'] = "SUCCESS: Connected via fallback database `defaultdb`.";
+        } else {
+            throw $e;
+        }
+    }
 
     // Check table
     $pdo->exec(
@@ -149,13 +172,6 @@ try {
     $report['connection_error'] = [
         'message' => $e->getMessage(),
         'code'    => $e->getCode(),
-    ];
-    $report['troubleshooting_tips'] = [
-        'If Host is 127.0.0.1' => 'Vercel environment variables are not being read or not set in Vercel Project Settings.',
-        'If Unknown database' => 'Check your Aiven DB name. Aiven default is "defaultdb", not "drawspace" unless you created "drawspace".',
-        'If Access denied' => 'Check your Aiven username (usually "avnadmin") and password.',
-        'If Connections using insecure transport' => 'Aiven requires SSL. Set DB_SSL=true or use DATABASE_URL URI.',
-        'If Redeploy needed' => 'After changing variables in Vercel, you MUST Redeploy your project in Vercel.',
     ];
 }
 
