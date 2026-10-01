@@ -11,7 +11,7 @@ $port     = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
 $dbname   = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'draw_space';
 $username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
 $password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
-$ssl      = strtolower((string)($_ENV['DB_SSL'] ?? getenv('DB_SSL') ?: '')) === 'true';
+$sslVar   = strtolower((string)($_ENV['DB_SSL'] ?? getenv('DB_SSL') ?: ''));
 $appDebug = strtolower((string)($_ENV['APP_DEBUG'] ?? getenv('APP_DEBUG') ?: '')) === 'true';
 
 $options = [
@@ -20,7 +20,8 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-if ($ssl) {
+// Enable SSL for remote/cloud hosts (e.g. Aiven) unless explicitly disabled
+if ($sslVar === 'true' || ($sslVar !== 'false' && $host !== '127.0.0.1' && $host !== 'localhost')) {
     if (defined('Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')) {
         $options[\Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT] = false;
     } elseif (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
@@ -36,11 +37,31 @@ try {
         $options
     );
 } catch (PDOException $e) {
+    // If the database is unknown on cloud MySQL (e.g. Aiven default is 'defaultdb'), retry with defaultdb
+    if ((int)$e->getCode() === 1049 && $dbname !== 'defaultdb') {
+        try {
+            $pdo = new PDO(
+                "mysql:host=$host;port=$port;dbname=defaultdb;charset=utf8mb4",
+                $username,
+                $password,
+                $options
+            );
+        } catch (PDOException $fallbackErr) {
+            handleDbError($fallbackErr, $appDebug);
+        }
+    } else {
+        handleDbError($e, $appDebug);
+    }
+}
+
+function handleDbError(PDOException $e, bool $debug): never
+{
     error_log('[DrawSpace] Database connection error: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json; charset=utf-8');
+    header('Access-Control-Allow-Origin: *');
     
-    $message = $appDebug ? ('Database error: ' . $e->getMessage()) : 'Database connection failed.';
+    $message = $debug ? ('Database error: ' . $e->getMessage()) : 'Database connection failed.';
     echo json_encode(['ok' => false, 'error' => $message]);
     exit;
 }
