@@ -24,8 +24,9 @@
   <a href="#-features">Features</a> •
   <a href="#-how-it-works">How it works</a> •
   <a href="#-getting-started">Getting started</a> •
-  <a href="#-api">API</a> •
   <a href="#-project-structure">Structure</a> •
+  <a href="#-api">API</a> •
+  <a href="#%EF%B8%8F-hosting--deployment">Hosting</a> •
   <a href="#-roadmap">Roadmap</a> •
   <a href="#-contributing">Contributing</a>
 </p>
@@ -42,6 +43,7 @@
 - 🖌️ **Simple tools** — freehand pen, color picker, brush size, clear board
 - 💾 **Persistent canvas** — the board is saved, so refreshing (or coming back later) keeps the drawing
 - 🪶 **Featherweight** — plain PHP + vanilla JS + CSS. No build step, no framework, no npm install
+- 📁 **Host-ready layout** — `public/` is the web root, app logic and config stay off the internet
 - 📱 **Works anywhere** — mouse or touch, desktop or phone
 
 ## 💡 How it works
@@ -58,9 +60,9 @@
               └─────────────┘
 ```
 
-1. `index.php` renders the drawing surface and loads the current board state.
-2. Every stroke you make is sent to `save.php`, which writes it to the database.
-3. The clients poll `load.php` to pull down new strokes, so the board stays in sync for everybody.
+1. `public/index.php` renders the drawing surface and loads the current board state.
+2. Every stroke you make is `POST`ed to `public/api/save.php`, which writes it to the database.
+3. Clients call `public/api/load.php` to pull down new strokes, so the board stays in sync for everybody.
 4. Refresh the page — `load.php` replays everything, and your drawing is right where you left it.
 
 > 🧱 This is intentionally the simplest thing that works. The polling layer is the part that
@@ -72,15 +74,46 @@
 | --------- | ------------- | ----------------------------------- |
 | Frontend  | Vanilla JS + Canvas API | Zero dependencies, instant load |
 | Styling   | Plain CSS     | No framework tax                    |
-| Backend   | PHP           | Dead simple for a small shared app  |
+| Backend   | PHP 8 + PDO   | Dead simple for a small shared app  |
 | Storage   | MySQL         | Reliable persistence for strokes    |
+| Config    | `.env`        | Secrets stay out of git             |
 | Realtime  | Polling *(now)* → WebSockets *(soon)* | Ship today, scale tomorrow |
+
+## 📁 Project structure
+
+```
+DrawSpace/
+├── public/                 ← 🌐 set this as your document root
+│   ├── index.php           # Entry point — renders the shared canvas
+│   ├── .htaccess           # Apache: index, hardening, pretty /save & /load
+│   ├── api/
+│   │   ├── save.php        # POST  — persists a stroke
+│   │   └── load.php        # GET   — returns strokes for syncing clients
+│   ├── css/
+│   │   └── style.css       # Layout & tool palette
+│   └── js/
+│       └── draw.js         # Canvas drawing + sync logic
+│
+├── app/                    ← 🔒 never web-accessible
+│   ├── database.php        # DB connection (PDO) — reads from .env
+│   └── .htaccess           # Safety net: deny all access
+│
+├── .env.example            # 📋 copy to .env and fill in your values
+├── .env                    # your secrets (git-ignored)
+├── .gitignore
+├── LICENSE
+└── README.md
+```
+
+**Why this layout?** Everything the browser needs lives in `public/`; everything else
+(`app/`) sits *outside* the document root, so even a misconfigured server can't leak
+your database credentials.
 
 ## 🚀 Getting started
 
 ### Prerequisites
 
-- PHP 8.x (with PDO/MySQL extension)
+- PHP 8.x (with the PDO MySQL extension)
 - MySQL 8 (or MariaDB)
 - A web server — Apache/Nginx, or just the built-in PHP dev server
 
@@ -109,38 +142,105 @@ CREATE TABLE strokes (
 
 ### 3. Configure
 
-Point `database.php` at your server:
-
-```php
-define('DB_HOST', '127.0.0.1');
-define('DB_NAME', 'drawspace');
-define('DB_USER', 'root');
-define('DB_PASS', 'your_password');
+```bash
+cp .env.example .env
 ```
 
-> 💡 Keep secrets out of git — see `.gitignore` and the tip in [Going to production](#-going-to-production).
+Then edit `.env`:
 
-### 4. Run
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=drawspace
+DB_USER=drawspace_user
+DB_PASS=your_password
+APP_ENV=development
+APP_DEBUG=true
+```
+
+`app/database.php` reads these values — no credentials ever live in tracked files.
+`.env` is already in `.gitignore`.
+
+### 4. Run locally
+
+The **document root must be `public/`**:
 
 ```bash
-php -S localhost:8000
+# PHP built-in server (note the -t flag)
+php -S localhost:8000 -t public
 ```
 
-Open **http://localhost:8000** in two browser windows and start drawing in one — watch it show up in the other. 🎉
+Open **http://localhost:8000** in two browser windows and start drawing in one —
+watch it show up in the other. 🎉
+
+## 🌍 Hosting / Deployment
+
+### Apache + cPanel / shared hosting
+
+1. Upload the repo so your account looks like:
+   ```
+   home/youruser/
+   ├── public_html/      ← symlink or point the domain at …/DrawSpace/public
+   └── DrawSpace/
+       ├── public/
+       ├── app/
+       └── .env
+   ```
+2. In **cPanel → MultiPHP Manager / Apache config**, set the document root to
+   `DrawSpace/public` — or simply copy the contents of `public/` into `public_html/`
+   and keep `app/` one level above it.
+3. `public/.htaccess` is already included (directory-index off, `.env`/dotfiles blocked,
+   optional `/save` → `/api/save.php` rewrites). Enable **Override** in Apache if 404s appear.
+
+### Nginx + PHP-FPM
+
+```nginx
+server {
+    server_name drawspace.example.com;
+    root /var/www/DrawSpace/public;          # ← point at public/, not the repo root
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+
+    # Never expose hidden files or env
+    location ~ /\. { deny all; }
+
+    location ~* \.(css|js)$ { expires 7d; access_log off; }
+}
+```
+
+### Deployment checklist
+
+- [ ] Document root points at `public/` (not the repository root)
+- [ ] `.env` exists on the server with production values, `APP_DEBUG=false`
+- [ ] MySQL user has rights to **only** the `drawspace` database
+- [ ] HTTPS enabled (certbot / Let's Encrypt / your host's panel)
+- [ ] `app/.htaccess` present as a second line of defence
+- [ ] PHP errors not printed to the browser (`display_errors=Off`)
 
 ## 🔌 API
 
-| Method | Endpoint     | Body / Params                     | Description                        |
-| ------ | ------------ | --------------------------------- | ---------------------------------- |
-| `GET`  | `index.php`  | —                                 | Renders the canvas                 |
-| `GET`  | `load.php`   | `since=<stroke id>` *(optional)*  | Returns strokes drawn since `since`|
-| `POST` | `save.php`   | `color`, `width`, `path`, `user`  | Persists a new stroke              |
+| Method | Endpoint          | Body / Params                     | Description                         |
+| ------ | ----------------- | --------------------------------- | ----------------------------------- |
+| `GET`  | `/`               | —                                 | Renders the canvas                  |
+| `GET`  | `/api/load.php`   | `since=<stroke id>` *(optional)*  | Returns strokes drawn since `since` |
+| `POST` | `/api/save.php`   | `color`, `width`, `path`, `user`  | Persists a new stroke               |
+
+> With the shipped `.htaccess`, `/save` and `/load` also work as pretty aliases.
 
 <details>
 <summary><b>Example request / response</b></summary>
 
 ```bash
-curl -X POST http://localhost:8000/save.php \
+curl -X POST http://localhost:8000/api/save.php \
   -d 'color=%237C3AED&width=4&path=10,10;20,25;35,40'
 ```
 
@@ -149,7 +249,7 @@ curl -X POST http://localhost:8000/save.php \
 ```
 
 ```bash
-curl "http://localhost:8000/load.php?since=42"
+curl "http://localhost:8000/api/load.php?since=42"
 ```
 
 ```json
@@ -162,26 +262,19 @@ curl "http://localhost:8000/load.php?since=42"
 ```
 </details>
 
-## 📁 Project structure
+## 🔒 Security notes
 
-```
-DrawSpace/
-├── index.php        # Entry point — renders the shared canvas
-├── save.php         # Writes a stroke to the database
-├── load.php         # Returns strokes for syncing clients
-├── database.php     # DB connection (PDO)
-├── css/
-│   └── style.css    # Layout & tool palette
-├── js/
-│   └── draw.js      # Canvas drawing + sync logic
-├── LICENSE          # MIT
-└── README.md
-```
+- Credentials live in `.env`, which is **git-ignored** — commit `.env.example` only
+- `app/` sits outside the document root **and** carries a deny-all `.htaccess`
+- Use **prepared statements** (PDO) for every query — never string-concatenate SQL
+- Validate `color`, `width` and `path` server-side before inserting
+- Serve over **HTTPS** in production
 
 ## 🗺️ Roadmap
 
 - [x] Shared canvas served from a single URL
 - [x] Draw + persist strokes
+- [x] Hosting-ready folder layout (`public/` web root, `.env` config)
 - [ ] 🎨 Tool palette — pen, eraser, colors, brush sizes
 - [ ] 🧹 Clear board / undo / redo
 - [ ] 🔁 Replace polling with **WebSockets** for true instant sync
@@ -190,16 +283,9 @@ DrawSpace/
 - [ ] 📄 Multiple rooms — `/room/design`, `/room/brainstorm`
 - [ ] 📝 Text tool, shapes, and an image layer
 - [ ] 🛡️ Rate limiting + input validation hardening
-- [ ] ⚡ Deployment (Docker + Nginx) and a live demo
+- [ ] ⚡ Docker image + live demo
 
 > Got an idea? Open an [issue](../../issues) or a [pull request](../../pulls) — see below. 👇
-
-## 🚀 Going to production
-
-- Move credentials out of `database.php` into environment variables
-- Serve over **HTTPS** (browsers restrict canvas/geo APIs on plain HTTP)
-- Add prepared-statement validation on every `save.php` field
-- Swap polling for WebSockets once stroke volume grows
 
 ## 🤝 Contributing
 
