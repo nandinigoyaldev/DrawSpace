@@ -3,3 +3,4 @@
 !.env.example
 .git
 .vscode
+public/api/

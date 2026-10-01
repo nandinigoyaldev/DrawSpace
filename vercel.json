@@ -40,11 +40,11 @@
     },
     {
       "src": "/",
-      "dest": "/api/index.php"
+      "dest": "/public/index.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/api/index.php"
+      "dest": "/public/$1"
     }
   ]
 }
