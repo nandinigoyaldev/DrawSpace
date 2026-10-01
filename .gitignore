@@ -1,0 +1,34 @@
+# ── Secrets / local config ─────────────────────────
+.env
+config.local.php
+database.local.php
+
+# ── Dependencies ───────────────────────────────────
+node_modules/
+vendor/
+composer.phar
+
+# ── Logs ───────────────────────────────────────────
+*.log
+logs/
+
+# ── OS junk ────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# ── Editors / IDEs ─────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Misc ───────────────────────────────────────────
+*.cache
+tmp/
+temp/
