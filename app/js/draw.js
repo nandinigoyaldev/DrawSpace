@@ -15,147 +15,76 @@ canvas.addEventListener("mouseleave", stopDrawing);
 
 function startDrawing(event) {
   isDrawing = true;
-
   currentStroke = [];
-
   ctx.beginPath();
   ctx.moveTo(event.offsetX, event.offsetY);
-
-  currentStroke.push({
-    x: event.offsetX,
-    y: event.offsetY,
-  });
+  currentStroke.push({ x: event.offsetX, y: event.offsetY });
 }
 
 function draw(event) {
-  if (!isDrawing) {
-    return;
-  }
-
+  if (!isDrawing) return;
   ctx.lineTo(event.offsetX, event.offsetY);
-
-  currentStroke.push({
-    x: event.offsetX,
-    y: event.offsetY,
-  });
-
+  currentStroke.push({ x: event.offsetX, y: event.offsetY });
   ctx.strokeStyle = "black";
   ctx.lineWidth = 3;
   ctx.lineCap = "round";
-
   ctx.stroke();
 }
 
 function stopDrawing() {
-  if (!isDrawing) {
-    return;
-  }
-
+  if (!isDrawing) return;
   isDrawing = false;
-
   strokes.push(currentStroke);
-
   ctx.closePath();
-
-  console.log(strokes);
-
   saveDrawing();
 }
 
 async function saveDrawing() {
   try {
-    const response = await fetch("/api/save.php", {
+    await fetch("/api/save.php", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(strokes),
     });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      console.warn(
-        "Save failed:",
-        response.status,
-        errData.error || response.statusText,
-      );
-    }
   } catch (error) {
-    console.warn("Save failed:", error);
+    console.log(error);
   }
 }
 
 async function loadDrawing() {
-  let response;
-
   try {
-    response = await fetch("/api/load.php");
+    const response = await fetch("/api/load.php");
+    if (!response.ok) return;
+    const savedStrokes = await response.json();
+    if (!Array.isArray(savedStrokes) || isDrawing) return;
+    if (JSON.stringify(savedStrokes) === JSON.stringify(strokes)) return;
+
+    strokes = savedStrokes;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSavedStrokes(savedStrokes);
   } catch (error) {
-    console.warn("Load fetch failed:", error);
-    return; // offline / transient — keep whatever is on screen
+    console.log(error);
   }
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    console.warn(
-      "Load failed:",
-      response.status,
-      errData.error || response.statusText,
-    );
-    return; // server hiccup — never wipe the local board over it
-  }
-
-  let savedStrokes;
-
-  try {
-    savedStrokes = await response.json();
-  } catch (error) {
-    return;
-  }
-
-  if (!Array.isArray(savedStrokes)) {
-    return;
-  }
-
-  if (isDrawing) {
-    return;
-  }
-
-  if (JSON.stringify(savedStrokes) === JSON.stringify(strokes)) {
-    return;
-  }
-
-  strokes = savedStrokes;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  drawSavedStrokes(savedStrokes);
 }
 
 function drawSavedStrokes(savedStrokes) {
   for (const stroke of savedStrokes) {
     ctx.beginPath();
-
     for (let i = 0; i < stroke.length; i++) {
       const point = stroke[i];
-
       if (i === 0) {
         ctx.moveTo(point.x, point.y);
       } else {
         ctx.lineTo(point.x, point.y);
       }
     }
-
     ctx.strokeStyle = "black";
     ctx.lineWidth = 3;
     ctx.lineCap = "round";
-
     ctx.stroke();
-
     ctx.closePath();
   }
 }
 
 loadDrawing();
-
 setInterval(loadDrawing, 1000);

@@ -8,11 +8,11 @@
   "routes": [
     {
       "src": "/css/(.*)",
-      "dest": "/public/css/$1"
+      "dest": "/app/css/$1"
     },
     {
       "src": "/js/(.*)",
-      "dest": "/public/js/$1"
+      "dest": "/app/js/$1"
     },
     {
       "src": "/api/save(\\.php)?",
@@ -36,11 +36,11 @@
     },
     {
       "src": "/",
-      "dest": "/public/index.html"
+      "dest": "/app/index.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/$1"
+      "dest": "/app/$1"
     }
   ]
 }
