@@ -74,7 +74,11 @@ async function saveDrawing() {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      console.warn("Save failed:", response.status, errData.error || response.statusText);
+      console.warn(
+        "Save failed:",
+        response.status,
+        errData.error || response.statusText,
+      );
     }
   } catch (error) {
     console.warn("Save failed:", error);
@@ -93,7 +97,11 @@ async function loadDrawing() {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    console.warn("Load failed:", response.status, errData.error || response.statusText);
+    console.warn(
+      "Load failed:",
+      response.status,
+      errData.error || response.statusText,
+    );
     return; // server hiccup — never wipe the local board over it
   }
 
@@ -151,4 +159,4 @@ function drawSavedStrokes(savedStrokes) {
 
 loadDrawing();
 
-setInterval(loadDrawing, 2000);
+setInterval(loadDrawing, 1000);

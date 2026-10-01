@@ -1,15 +1,4 @@
 <?php
-
-/**
- * DrawSpace · PDO connection
- *
- * Credentials are read from environment variables, optionally loaded from
- * the git-ignored `.env` file at the project root. Nothing secret is ever
- * stored in a tracked file.
- */
-
-// Suppress deprecated warnings and display_errors from corrupting JSON payloads
-@ini_set('display_errors', '0');
 @error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 $envFile = dirname(__DIR__) . '/.env';
