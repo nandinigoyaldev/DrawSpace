@@ -21,7 +21,17 @@ function db(): PDO
 
     $driver = strtolower((string) env('DB_DRIVER', 'mysql'));
 
+    if (!in_array($driver, ['mysql', 'sqlite'], true)) {
+        throw new RuntimeException('DB_DRIVER must be either mysql or sqlite.');
+    }
+
     if ($driver === 'sqlite') {
+        if (env('VERCEL') !== null) {
+            throw new RuntimeException(
+                'SQLite is not supported on Vercel. Configure a managed MySQL database with DB_DRIVER=mysql.'
+            );
+        }
+
         $configuredPath = (string) env('DB_PATH', 'storage/drawspace.sqlite');
         $absolute = str_starts_with($configuredPath, '/')
             || str_starts_with($configuredPath, '\\')
