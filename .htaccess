@@ -1,0 +1,44 @@
+# Apache configuration for DrawSpace (the site root is this folder).
+# On Vercel, vercel.json is used instead.
+
+Options -Indexes
+DirectoryIndex app/index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Never serve secrets, the SQLite database or git metadata.
+  RewriteRule ^(?:storage|\.git)(?:/|$) - [F,L]
+  RewriteRule ^(?:\.env|\.env\..*|composer\.(?:json|lock)|router\.php)$ - [F,L]
+
+  # Clean login URL.
+  RewriteRule ^login/?$ app/login.html [L]
+
+  # Public static files live under app/ but are served from the site root.
+  RewriteRule ^(css|js|assets)/([A-Za-z0-9._-]+)$ app/$1/$2 [L]
+  RewriteRule ^favicon\.(?:ico|svg)$ app/assets/favicon.svg [L]
+
+  # /api/name → /api/name.php
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^api/([a-z][a-z0-9-]*)/?$ api/$1.php [L]
+</IfModule>
+
+<FilesMatch "^\.">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+  Header always unset X-Powered-By
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>

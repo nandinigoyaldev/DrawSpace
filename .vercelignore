@@ -3,3 +3,8 @@
 !.env.example
 .git
 .vscode
+storage
+*.sqlite
+*.sqlite-*
+.htaccess
+router.php

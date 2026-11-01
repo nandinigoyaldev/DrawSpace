@@ -1,7 +1,14 @@
 # ── Secrets / local config ─────────────────────────
 .env
+.env.local
 config.local.php
 database.local.php
+
+# ── Local database ─────────────────────────────────
+storage/*.sqlite
+storage/*.sqlite3
+storage/*.sqlite-*
+storage/*.db
 
 # ── Dependencies ───────────────────────────────────
 node_modules/

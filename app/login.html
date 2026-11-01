@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#07060d">
+  <meta name="description" content="Sign in to DrawSpace – a shared drawing board for you and your friends.">
+  <title>Sign in · DrawSpace</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="auth-page">
+  <noscript>
+    <div class="noscript">
+      <h1>JavaScript is required</h1>
+      <p>DrawSpace needs JavaScript to sign you in. Enable it in your browser, then reload this page.</p>
+    </div>
+  </noscript>
+
+  <div class="auth-glow" aria-hidden="true">
+    <span class="g1"></span>
+    <span class="g2"></span>
+    <span class="g3"></span>
+  </div>
+
+  <main class="auth">
+    <section class="auth-intro" aria-label="About DrawSpace">
+      <a class="brand" href="/login">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 20c3.2 0 3.8-4.4 7-4.4S14 20 21 15.5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+            <path d="M16.7 2.9a1.9 1.9 0 0 1 2.7 0l1.7 1.7a1.9 1.9 0 0 1 0 2.7l-8 8-4.8 1.1 1.1-4.8 7.3-8.7Z" fill="currentColor" opacity=".92"/>
+          </svg>
+        </span>
+        <span class="brand-word">Draw<span>Space</span></span>
+      </a>
+
+      <h1>Draw together,<br><span class="gradient">in real time.</span></h1>
+      <p>One link, one canvas. Sketch ideas with friends, teammates or a room full of strangers — every stroke shows up live.</p>
+
+      <ul class="feature-list">
+        <li>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          </span>
+          <div><strong>Instant multiplayer</strong><span>Strokes sync to everyone in under two seconds.</span></div>
+        </li>
+        <li>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <div><strong>Secure by default</strong><span>Hashed passwords, HttpOnly sessions and CSRF protection.</span></div>
+        </li>
+        <li>
+          <span class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
+          <div><strong>Anywhere you are</strong><span>Mouse, touch or stylus — on desktop and mobile.</span></div>
+        </li>
+      </ul>
+
+      <div class="art-wrap">
+        <div class="art-board">
+          <svg viewBox="0 0 440 280" role="img" aria-label="Preview of a shared drawing board">
+            <rect width="440" height="280" rx="12" fill="#ffffff"/>
+            <path d="M52 200c34-78 58-104 86-70s32 46 62 12 44-48 74-14 40 58 82 28" fill="none" stroke="#8b5cf6" stroke-width="7" stroke-linecap="round"/>
+            <path d="M70 96c22-20 44-24 62-8" fill="none" stroke="#22d3ee" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="342" cy="84" r="30" fill="none" stroke="#fbbf24" stroke-width="6"/>
+            <rect x="292" y="168" width="92" height="58" rx="10" fill="#fdf2f8" stroke="#f472b6" stroke-width="2.5"/>
+            <path d="M308 188h58M308 201h40" stroke="#f472b6" stroke-width="4" stroke-linecap="round"/>
+            <path d="M120 235h80" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="art-pill">
+          <span class="avatar-stack" aria-hidden="true">
+            <span class="avatar-dot a1"></span>
+            <span class="avatar-dot a2"></span>
+            <span class="avatar-dot a3"></span>
+          </span>
+          3 people drawing
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-card" aria-labelledby="card-title">
+      <div class="mobile-brand">
+        <a class="brand" href="/login">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 20c3.2 0 3.8-4.4 7-4.4S14 20 21 15.5" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M16.7 2.9a1.9 1.9 0 0 1 2.7 0l1.7 1.7a1.9 1.9 0 0 1 0 2.7l-8 8-4.8 1.1 1.1-4.8 7.3-8.7Z" fill="currentColor" opacity=".92"/>
+            </svg>
+          </span>
+          <span class="brand-word">Draw<span>Space</span></span>
+        </a>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Account access">
+        <button class="tab" id="tab-login" type="button" role="tab" aria-selected="true" aria-controls="panel-login" data-tab="login">Sign in</button>
+        <button class="tab" id="tab-register" type="button" role="tab" aria-selected="false" aria-controls="panel-register" data-tab="register">Create account</button>
+      </div>
+
+      <div class="card-heading">
+        <h2 id="card-title">Welcome back</h2>
+        <p id="card-subtitle">Pick up your board where you left off.</p>
+      </div>
+
+      <div id="panel-login" role="tabpanel" aria-labelledby="tab-login">
+        <form class="auth-form" id="login-form" novalidate>
+          <label class="field">
+            <span>Username</span>
+            <input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="your_username" required>
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <span class="password-wrap">
+              <input type="password" name="password" autocomplete="current-password" maxlength="72" placeholder="Your password" required>
+              <button class="password-toggle" type="button" data-toggle-password aria-label="Show password" aria-pressed="false">Show</button>
+            </span>
+          </label>
+
+          <p class="form-error" role="alert" hidden></p>
+
+          <button class="btn btn-primary btn-block" type="submit">
+            <span data-label>Sign in</span>
+          </button>
+
+          <p class="switch-hint">New to DrawSpace? <button class="link" type="button" data-tab-target="register">Create an account</button></p>
+        </form>
+      </div>
+
+      <div id="panel-register" role="tabpanel" aria-labelledby="tab-register" hidden>
+        <form class="auth-form" id="register-form" novalidate>
+          <label class="field">
+            <span>Username</span>
+            <input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="your_username" required>
+            <span class="field-hint">3–20 letters, numbers or underscores.</span>
+          </label>
+
+          <label class="field">
+            <span>Password</span>
+            <span class="password-wrap">
+              <input type="password" name="password" autocomplete="new-password" minlength="10" maxlength="72" placeholder="At least 10 characters" required>
+              <button class="password-toggle" type="button" data-toggle-password aria-label="Show password" aria-pressed="false">Show</button>
+            </span>
+          </label>
+
+          <div class="strength" data-score="0" id="strength" aria-hidden="true">
+            <div class="strength-bars"><span></span><span></span><span></span><span></span></div>
+            <span class="strength-label" id="strength-label">Weak</span>
+          </div>
+
+          <label class="field">
+            <span>Confirm password</span>
+            <span class="password-wrap">
+              <input type="password" name="confirm" autocomplete="new-password" minlength="10" maxlength="72" placeholder="Repeat your password" required>
+              <button class="password-toggle" type="button" data-toggle-password aria-label="Show password" aria-pressed="false">Show</button>
+            </span>
+          </label>
+
+          <p class="form-error" role="alert" hidden></p>
+
+          <button class="btn btn-primary btn-block" type="submit">
+            <span data-label>Create account</span>
+          </button>
+
+          <p class="switch-hint">Already have an account? <button class="link" type="button" data-tab-target="login">Sign in</button></p>
+        </form>
+      </div>
+
+      <div class="card-foot">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Passwords are hashed · Sessions stay private
+      </div>
+    </section>
+  </main>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+  <script type="module" src="/js/auth.js"></script>
+</body>
+</html>

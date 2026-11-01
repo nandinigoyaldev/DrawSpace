@@ -5,42 +5,36 @@
       "runtime": "vercel-php@0.9.0"
     }
   },
-  "routes": [
+  "headers": [
     {
-      "src": "/css/(.*)",
-      "dest": "/app/css/$1"
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+      ]
     },
     {
-      "src": "/js/(.*)",
-      "dest": "/app/js/$1"
-    },
-    {
-      "src": "/api/save(\\.php)?",
-      "dest": "/api/save.php"
-    },
-    {
-      "src": "/api/load(\\.php)?",
-      "dest": "/api/load.php"
-    },
-    {
-      "src": "/save",
-      "dest": "/api/save.php"
-    },
-    {
-      "src": "/load",
-      "dest": "/api/load.php"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/app/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/app/$1"
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+        }
+      ]
     }
+  ],
+  "routes": [
+    { "src": "/api/([a-z][a-z0-9-]*)(\\.php)?", "dest": "/api/$1.php" },
+    { "src": "/css/(.*)", "dest": "/app/css/$1" },
+    { "src": "/js/(.*)", "dest": "/app/js/$1" },
+    { "src": "/assets/(.*)", "dest": "/app/assets/$1" },
+    { "src": "/login", "dest": "/app/login.html" },
+    { "src": "/login\\.html", "dest": "/app/login.html" },
+    { "src": "/index\\.html", "dest": "/app/index.html" },
+    { "src": "/", "dest": "/app/index.html" },
+    { "src": "/(.*)", "dest": "/app/$1" }
   ]
 }

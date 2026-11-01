@@ -1,31 +1,262 @@
 <?php
+/**
+ * DrawSpace – database connection.
+ *
+ * MySQL is the default. SQLite is supported for local development and tiny
+ * deployments (`DB_DRIVER=sqlite`). The schema is created automatically on
+ * first use; every query in the app uses prepared statements through PDO.
+ */
 
-$host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
-$port = (int)($_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: 3306);
-$username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root';
-$password = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
-$database = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'draw_space';
+declare(strict_types=1);
 
-$conn = mysqli_init();
+require_once __DIR__ . '/bootstrap.php';
 
-try {
-    if ($host !== 'localhost' && $host !== '127.0.0.1') {
-        mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
-        mysqli_real_connect($conn, $host, $username, $password, $database, $port, NULL, MYSQLI_CLIENT_SSL);
-    } else {
-        mysqli_real_connect($conn, $host, $username, $password, $database, $port);
+function db(): PDO
+{
+    static $pdo = null;
+
+    if ($pdo instanceof PDO) {
+        return $pdo;
     }
-} catch (mysqli_sql_exception $e) {
-    if ($e->getCode() === 1049 && $database !== 'defaultdb') {
-        $conn = mysqli_init();
-        if ($host !== 'localhost' && $host !== '127.0.0.1') {
-            mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
-            mysqli_real_connect($conn, $host, $username, $password, 'defaultdb', $port, NULL, MYSQLI_CLIENT_SSL);
-        } else {
-            mysqli_real_connect($conn, $host, $username, $password, 'defaultdb', $port);
+
+    $driver = strtolower((string) env('DB_DRIVER', 'mysql'));
+
+    if ($driver === 'sqlite') {
+        $configuredPath = (string) env('DB_PATH', 'storage/drawspace.sqlite');
+        $absolute = str_starts_with($configuredPath, '/')
+            || str_starts_with($configuredPath, '\\')
+            || preg_match('/^[A-Za-z]:[\\\\\/]/', $configuredPath) === 1;
+        $path = $absolute
+            ? $configuredPath
+            : dirname(__DIR__) . DIRECTORY_SEPARATOR . $configuredPath;
+        $directory = dirname($path);
+
+        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            throw new RuntimeException('Could not create the storage directory.');
         }
+
+        $pdo = new PDO('sqlite:' . $path, null, null, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+
+        $pdo->exec('PRAGMA journal_mode = WAL');
+        $pdo->exec('PRAGMA foreign_keys = ON');
+        $pdo->exec('PRAGMA busy_timeout = 5000');
+        $pdo->exec('PRAGMA synchronous = NORMAL');
+
+        @chmod($path, 0600);
     } else {
-        http_response_code(500);
-        die(json_encode(['error' => 'Connection failed: ' . $e->getMessage()]));
+        $host = (string) env('DB_HOST', '127.0.0.1');
+        $port = (int) env('DB_PORT', '3306');
+        $name = (string) env('DB_NAME', 'drawspace');
+        $user = (string) env('DB_USER', 'root');
+        $pass = (string) env('DB_PASS', '');
+
+        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $name);
+
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_STRINGIFY_FETCHES  => false,
+            PDO::ATTR_TIMEOUT            => 5,
+        ];
+
+        if (env_bool('DB_SSL', false)) {
+            $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = env_bool('DB_SSL_VERIFY', true);
+
+            if (($ca = env('DB_SSL_CA')) !== null) {
+                $options[PDO::MYSQL_ATTR_SSL_CA] = $ca;
+            }
+        }
+
+        $pdo = new PDO($dsn, $user, $pass, $options);
+        $pdo->exec("SET SESSION sql_mode = 'STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION'");
+    }
+
+    ensure_schema($pdo, $driver);
+    maybe_gc($pdo);
+
+    return $pdo;
+}
+
+function ensure_schema(PDO $pdo, string $driver): void
+{
+    try {
+        $statement = $pdo->prepare('SELECT v FROM meta WHERE k = :k');
+        $statement->execute([':k' => 'schema_version']);
+
+        if ($statement->fetchColumn() === SCHEMA_VERSION) {
+            return;
+        }
+    } catch (PDOException) {
+        // Fresh database – fall through and install the schema.
+    }
+
+    $mysql = $driver !== 'sqlite';
+
+    $statements = $mysql ? mysql_schema() : sqlite_schema();
+
+    foreach ($statements as $sql) {
+        $pdo->exec($sql);
+    }
+
+    if ($mysql) {
+        $pdo->prepare('INSERT INTO meta (k, v) VALUES (:k, :v) ON DUPLICATE KEY UPDATE v = VALUES(v)')
+            ->execute([':k' => 'schema_version', ':v' => SCHEMA_VERSION]);
+    } else {
+        $pdo->prepare('INSERT INTO meta (k, v) VALUES (:k, :v) ON CONFLICT(k) DO UPDATE SET v = excluded.v')
+            ->execute([':k' => 'schema_version', ':v' => SCHEMA_VERSION]);
+    }
+}
+
+/** @return list<string> */
+function mysql_schema(): array
+{
+    return [
+        "CREATE TABLE IF NOT EXISTS meta (
+            k VARCHAR(64) NOT NULL PRIMARY KEY,
+            v VARCHAR(255) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        "CREATE TABLE IF NOT EXISTS users (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(32) NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at BIGINT NOT NULL,
+            UNIQUE KEY uniq_users_username (username)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS sessions (
+            token_hash CHAR(64) NOT NULL PRIMARY KEY,
+            user_id BIGINT UNSIGNED NOT NULL,
+            csrf_token CHAR(64) NOT NULL,
+            created_at BIGINT NOT NULL,
+            expires_at BIGINT NOT NULL,
+            last_seen BIGINT NOT NULL,
+            ip VARCHAR(45) NOT NULL DEFAULT '',
+            user_agent VARCHAR(255) NOT NULL DEFAULT '',
+            KEY idx_sessions_user (user_id),
+            KEY idx_sessions_expiry (expires_at),
+            CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        "CREATE TABLE IF NOT EXISTS rooms (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            public_id CHAR(18) NOT NULL,
+            name VARCHAR(80) NOT NULL,
+            owner_id BIGINT UNSIGNED NOT NULL,
+            version BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            point_count BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            created_at BIGINT NOT NULL,
+            updated_at BIGINT NOT NULL,
+            UNIQUE KEY uniq_rooms_public (public_id),
+            KEY idx_rooms_owner (owner_id, updated_at),
+            CONSTRAINT fk_rooms_owner FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+        "CREATE TABLE IF NOT EXISTS strokes (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            room_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            mode VARCHAR(8) NOT NULL DEFAULT 'pen',
+            color CHAR(7) NOT NULL DEFAULT '#111827',
+            width SMALLINT UNSIGNED NOT NULL DEFAULT 4,
+            points MEDIUMTEXT NOT NULL,
+            created_at BIGINT NOT NULL,
+            KEY idx_strokes_room (room_id, id),
+            KEY idx_strokes_user (room_id, user_id, id),
+            CONSTRAINT fk_strokes_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
+            CONSTRAINT fk_strokes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        "CREATE TABLE IF NOT EXISTS rate_limits (
+            rl_key VARCHAR(191) NOT NULL PRIMARY KEY,
+            rl_count INT UNSIGNED NOT NULL,
+            rl_reset BIGINT NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    ];
+}
+
+/** @return list<string> */
+function sqlite_schema(): array
+{
+    return [
+        'CREATE TABLE IF NOT EXISTS meta (
+            k TEXT NOT NULL PRIMARY KEY,
+            v TEXT NOT NULL
+        )',
+
+        'CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )',
+
+        'CREATE TABLE IF NOT EXISTS sessions (
+            token_hash TEXT NOT NULL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            csrf_token TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            last_seen INTEGER NOT NULL,
+            ip TEXT NOT NULL DEFAULT \'\',
+            user_agent TEXT NOT NULL DEFAULT \'\'
+        )',
+
+        'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id)',
+        'CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions (expires_at)',
+
+        'CREATE TABLE IF NOT EXISTS rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            public_id TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            version INTEGER NOT NULL DEFAULT 0,
+            point_count INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )',
+
+        'CREATE INDEX IF NOT EXISTS idx_rooms_owner ON rooms (owner_id, updated_at)',
+
+        'CREATE TABLE IF NOT EXISTS strokes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            mode TEXT NOT NULL DEFAULT \'pen\',
+            color TEXT NOT NULL DEFAULT \'#111827\',
+            width INTEGER NOT NULL DEFAULT 4,
+            points TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        )',
+
+        'CREATE INDEX IF NOT EXISTS idx_strokes_room ON strokes (room_id, id)',
+        'CREATE INDEX IF NOT EXISTS idx_strokes_user ON strokes (room_id, user_id, id)',
+
+        'CREATE TABLE IF NOT EXISTS rate_limits (
+            rl_key TEXT NOT NULL PRIMARY KEY,
+            rl_count INTEGER NOT NULL,
+            rl_reset INTEGER NOT NULL
+        )',
+    ];
+}
+
+/** Opportunistically remove expired sessions and stale counters. */
+function maybe_gc(PDO $pdo): void
+{
+    if (random_int(1, 40) !== 1) {
+        return;
+    }
+
+    try {
+        $pdo->prepare('DELETE FROM sessions WHERE expires_at < :now')->execute([':now' => now()]);
+        $pdo->prepare('DELETE FROM rate_limits WHERE rl_reset < :cutoff')
+            ->execute([':cutoff' => now() - 86400]);
+    } catch (Throwable $error) {
+        error_log('[DrawSpace] GC failed: ' . $error->getMessage());
     }
 }
