@@ -105,7 +105,7 @@ function create_room(PDO $pdo, int $ownerId, string $name): array
 
             return find_room($pdo, $publicId);
         } catch (PDOException $error) {
-            if ($error->getCode() !== '23000') {
+            if (!in_array($error->getCode(), ['23000', '23505'], true)) {
                 throw $error;
             }
         }

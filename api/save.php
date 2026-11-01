@@ -53,10 +53,12 @@ $result = with_transaction($pdo, static function (PDO $pdo) use ($room, $stroke,
         fail(409, 'This board is full. Clear it or start a new one.');
     }
 
-    $pdo->prepare(
+    $insert = $pdo->prepare(
         'INSERT INTO strokes (room_id, user_id, mode, color, width, points, created_at)
          VALUES (:room, :user, :mode, :color, :width, :points, :created)'
-    )->execute([
+        . ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? ' RETURNING id' : '')
+    );
+    $insert->execute([
         ':room'    => $roomInternalId,
         ':user'    => $userId,
         ':mode'    => $stroke['mode'],
@@ -66,7 +68,9 @@ $result = with_transaction($pdo, static function (PDO $pdo) use ($room, $stroke,
         ':created' => now(),
     ]);
 
-    $strokeId = (int) $pdo->lastInsertId();
+    $strokeId = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+        ? (int) $insert->fetchColumn()
+        : (int) $pdo->lastInsertId();
 
     $versionStatement = $pdo->prepare('SELECT version FROM rooms WHERE id = :id');
     $versionStatement->execute([':id' => $roomInternalId]);

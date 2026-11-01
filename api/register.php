@@ -22,21 +22,25 @@ $createdAt = now();
 
 try {
     [$userId, $room] = with_transaction($pdo, static function (PDO $pdo) use ($username, $password, $createdAt): array {
-        $pdo->prepare(
+        $insert = $pdo->prepare(
             'INSERT INTO users (username, password_hash, created_at) VALUES (:username, :hash, :created)'
-        )->execute([
+            . ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? ' RETURNING id' : '')
+        );
+        $insert->execute([
             ':username' => $username,
             ':hash'     => hash_password($password),
             ':created'  => $createdAt,
         ]);
 
-        $userId = (int) $pdo->lastInsertId();
+        $userId = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+            ? (int) $insert->fetchColumn()
+            : (int) $pdo->lastInsertId();
         $room = create_room($pdo, $userId, 'My first board');
 
         return [$userId, $room];
     });
 } catch (PDOException $error) {
-    if ($error->getCode() === '23000') {
+    if (in_array($error->getCode(), ['23000', '23505'], true)) {
         fail(409, 'That username is already taken.');
     }
 

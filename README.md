@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/version-1.0.0-8A2BE2?style=for-the-badge&color=7C3AED" alt="version" />
   <img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP" />
   <img src="https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
-  <img src="https://img.shields.io/badge/MySQL%20%7C%20SQLite-database-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="Database" />
+  <img src="https://img.shields.io/badge/PostgreSQL%20%7C%20SQLite-database-4479A1?style=for-the-badge&logo=postgresql&logoColor=white" alt="Database" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="license" />
 </p>
 
@@ -54,8 +54,8 @@
 
 ### Requirements
 
-- PHP **8.1+** with `pdo_mysql` (production) or `pdo_sqlite` (local)
-- MySQL 5.7+/8.x **or** SQLite 3
+- PHP **8.1+** with `pdo_pgsql` (production) or `pdo_sqlite` (local)
+- PostgreSQL 14+ **or** SQLite 3
 - Any web server; no Composer or Node dependencies
 
 ### Option A — SQLite (fastest, great for local dev)
@@ -85,34 +85,26 @@ Open <http://127.0.0.1:8000>. The database and schema are created automatically 
 first request. `storage/` is git-ignored and denied by Apache.
 
 > SQLite is perfect locally, but **not** suitable for Vercel or other serverless hosts —
-> the filesystem is ephemeral. Use MySQL there.
+> the filesystem is ephemeral. Use a managed PostgreSQL database such as Neon there.
 
-### Option B — MySQL
+### Option B — PostgreSQL (Neon)
 
-```sql
-CREATE DATABASE drawspace
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-CREATE USER 'drawspace'@'localhost' IDENTIFIED BY 'use-a-long-random-password';
-GRANT ALL PRIVILEGES ON drawspace.* TO 'drawspace'@'localhost';
-FLUSH PRIVILEGES;
-```
+Create a free Neon project and copy its connection details from the Neon
+dashboard. Use the `database`, `role`, password, host, and port from Neon:
 
 ```dotenv
-DB_DRIVER=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=drawspace
-DB_USER=drawspace
-DB_PASS=use-a-long-random-password
-DB_SSL=false
+DB_DRIVER=postgres
+DB_HOST=ep-example.us-east-2.aws.neon.tech
+DB_PORT=5432
+DB_NAME=neondb
+DB_USER=neondb_owner
+DB_PASS=use-your-neon-password
+DB_SSL=true
 APP_DEBUG=false
 ```
 
-Run `php -S 127.0.0.1:8000 router.php` (or point Apache/nginx at the project root).
-Tables are created on first request; only one empty `meta`/`users`/`rooms`/`strokes` set
-of tables is needed.
+The tables are created automatically on the first API request. For local
+development, keep using the SQLite configuration above.
 
 ### Environment variables
 
@@ -120,15 +112,39 @@ of tables is needed.
 | --------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `APP_ENV`                         | `local`                      | Informational                                                                                                |
 | `APP_DEBUG`                       | `false`                      | Adds error details to JSON **only** when `true`. Keep `false` in production                                  |
-| `DB_DRIVER`                       | `mysql`                      | `mysql` or `sqlite`                                                                                          |
-| `DB_HOST` / `DB_PORT`             | `127.0.0.1` / `3306`         | MySQL                                                                                                        |
-| `DB_NAME` / `DB_USER` / `DB_PASS` | `drawspace` / `root` / empty | MySQL                                                                                                        |
-| `DB_SSL`                          | `false`                      | Enable TLS to the database                                                                                   |
+| `DB_DRIVER`                       | `sqlite`                     | `postgres`, `mysql`, or `sqlite`                                                                             |
+| `DB_HOST` / `DB_PORT`             | `127.0.0.1` / `5432`         | PostgreSQL/Neon or MySQL                                                                                     |
+| `DB_NAME` / `DB_USER` / `DB_PASS` | `drawspace` / `postgres` / empty | PostgreSQL/Neon or MySQL                                                                                  |
+| `DB_SSL`                          | `false`                      | Enable TLS; use `true` for Neon                                                                               |
 | `DB_SSL_VERIFY`                   | `true`                       | Verify the database certificate (set `false` only if your host provides no CA)                               |
 | `DB_SSL_CA`                       | —                            | Path to a CA bundle                                                                                          |
 | `DB_PATH`                         | `storage/drawspace.sqlite`   | SQLite file                                                                                                  |
 | `SESSION_TTL_DAYS`                | `14`                         | Session lifetime, clamped to 1–90                                                                            |
 | `TRUST_PROXY`                     | `false`                      | Set `true` **only** behind a trusted proxy (Vercel, load balancer) so real client IPs and HTTPS are detected |
+
+### Deploying to Vercel with Neon
+
+Create a Neon project, then add these variables in Vercel for the
+Production environment. Copy the host, database name, role, and password from
+Neon's **Connect** dialog:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+DB_DRIVER=postgres
+DB_HOST=ep-example.us-east-2.aws.neon.tech
+DB_PORT=5432
+DB_NAME=neondb
+DB_USER=neondb_owner
+DB_PASS=your-neon-password
+DB_SSL=true
+TRUST_PROXY=true
+```
+
+Do not paste the full Neon connection string into the repository or commit
+the password. Tables are created automatically on the first API request.
+Deployments that leave `DB_DRIVER=sqlite` on Vercel are rejected because
+Vercel's filesystem is ephemeral.
 
 ## 💡 How it works
 
@@ -140,7 +156,7 @@ of tables is needed.
    You ──┘   └───────┬───────┘  └── Friend C
                      │
               ┌──────▼──────┐
-              │  MySQL /    │  ← strokes, accounts, sessions
+              │ PostgreSQL/ │  ← strokes, accounts, sessions
               │  SQLite     │
               └─────────────┘
 ```
@@ -163,7 +179,7 @@ of tables is needed.
 | Frontend | Vanilla ES modules + Canvas 2D       | Zero dependencies, instant load           |
 | Styling  | Plain CSS (custom properties)        | No framework tax                          |
 | Backend  | PHP 8.1+ + PDO                       | Simple, ubiquitous hosting                |
-| Storage  | MySQL / SQLite                       | Reliable persistence, easy local setup    |
+| Storage  | PostgreSQL / SQLite                 | Reliable persistence, easy local setup    |
 | Auth     | Argon2id/bcrypt + DB-backed sessions | No framework, still safe                  |
 | Realtime | Versioned polling                    | Ships today, scales fine for small boards |
 
