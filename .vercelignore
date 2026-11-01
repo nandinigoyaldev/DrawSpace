@@ -2,9 +2,11 @@
 .env.*
 !.env.example
 .git
+.git/**
 .vscode
 storage
+storage/**
 *.sqlite
 *.sqlite-*
-.htaccess
-router.php
+.vercel
+.vercel/**
