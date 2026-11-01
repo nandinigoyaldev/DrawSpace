@@ -120,7 +120,7 @@ development, keep using the SQLite configuration above.
 | `DB_SSL_CA`                       | —                            | Path to a CA bundle                                                                                          |
 | `DB_PATH`                         | `storage/drawspace.sqlite`   | SQLite file                                                                                                  |
 | `SESSION_TTL_DAYS`                | `14`                         | Session lifetime, clamped to 1–90                                                                            |
-| `TRUST_PROXY`                     | `false`                      | Set `true` **only** behind a trusted proxy (Vercel, load balancer) so real client IPs and HTTPS are detected |
+| `TRUST_PROXY`                     | `false`                      | Set `true` behind a trusted non-Vercel proxy so real client IPs and HTTPS are detected; Vercel is detected automatically |
 
 ### Deploying to Vercel with Neon
 
@@ -138,7 +138,6 @@ DB_NAME=neondb
 DB_USER=neondb_owner
 DB_PASS=your-neon-password
 DB_SSL=true
-TRUST_PROXY=true
 ```
 
 Do not paste the full Neon connection string into the repository or commit

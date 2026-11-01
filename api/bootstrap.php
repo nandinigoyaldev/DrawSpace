@@ -160,8 +160,16 @@ function is_https(): bool
         return true;
     }
 
-    return env_bool('TRUST_PROXY', false)
+    return trusted_proxy()
         && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
+function trusted_proxy(): bool
+{
+    // Vercel terminates TLS before invoking PHP and sets VERCEL=1. Its
+    // forwarded headers are therefore trusted without requiring an extra
+    // project variable; other proxies remain opt-in.
+    return env('VERCEL') !== null || env_bool('TRUST_PROXY', false);
 }
 
 function send_api_headers(): void
@@ -246,7 +254,7 @@ function read_json_body(int $maxBytes = 262144): array
 
 function client_ip(): string
 {
-    if (env_bool('TRUST_PROXY', false)) {
+    if (trusted_proxy()) {
         $forwarded = (string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
 
         if ($forwarded !== '') {
