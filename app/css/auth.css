@@ -143,6 +143,96 @@
   font-size: 11px;
 }
 
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(101, 230, 161, 0.14);
+}
+
+.auth-status[data-state="busy"] .status-dot {
+  background: var(--cyan);
+  animation: status-pulse 0.8s steps(2) infinite;
+}
+
+.auth-status[data-state="offline"] .status-dot,
+.auth-status[data-state="error"] .status-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 107, 138, 0.14);
+}
+
+@keyframes status-pulse {
+  50% { opacity: 0.35; }
+}
+
+.remembered-user {
+  min-height: 16px;
+  color: var(--cyan);
+}
+
+.remembered-user .link {
+  font-size: inherit;
+}
+
+.password-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: -7px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.password-rules li::before {
+  content: "○";
+  margin-right: 5px;
+  color: var(--muted);
+}
+
+.password-rules li[data-valid="true"] {
+  color: var(--success);
+}
+
+.password-rules li[data-valid="true"]::before {
+  content: "✓";
+  color: var(--success);
+}
+
+.generate-password {
+  align-self: flex-start;
+  font-size: 11px;
+}
+
+.match-hint {
+  min-height: 16px;
+  color: var(--danger);
+  font-size: 11px;
+}
+
+.match-hint[data-valid="true"] {
+  color: var(--success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .auth-glow span,
+  .auth-status[data-state="busy"] .status-dot {
+    animation: none;
+  }
+}
+
 .auth-intro h1 .gradient {
   background: linear-gradient(90deg, var(--accent), var(--cyan));
   -webkit-background-clip: text;

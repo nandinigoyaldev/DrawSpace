@@ -23,8 +23,18 @@ const registerForm = document.getElementById('register-form');
 const registerPassword = registerForm.querySelector('input[name="password"]');
 const strength = document.getElementById('strength');
 const strengthLabel = document.getElementById('strength-label');
+const authStatus = document.getElementById('auth-status');
+const statusText = authStatus?.querySelector('[data-status-text]');
+const rememberedUser = document.querySelector('[data-remembered-user]');
+const registerUsername = registerForm.elements.namedItem('username');
+const usernameHint = registerForm.querySelector('[data-username-hint]');
+const confirmPassword = registerForm.elements.namedItem('confirm');
+const matchHint = registerForm.querySelector('[data-match-hint]');
+const passwordRules = registerForm.querySelectorAll('[data-rule]');
 
 let activeTab = 'login';
+let loginLockedUntil = 0;
+const rememberedUsernameKey = 'drawspace_last_username';
 
 /* ────────────────────────────────── Tabs ─────────────────────────────────── */
 
@@ -54,6 +64,8 @@ function showTab(name, { focus = false } = {}) {
   if (focus) {
     panels[activeTab].querySelector('input')?.focus();
   }
+
+  updateStatus(navigator.onLine ? 'Ready when you are.' : 'You are offline. We will retry when you reconnect.');
 }
 
 for (const [name, tab] of Object.entries(tabs)) {
@@ -73,6 +85,59 @@ document.querySelector('.tabs')?.addEventListener('keydown', (event) => {
   const target = activeTab === 'login' ? 'register' : 'login';
   showTab(target, { focus: true });
 });
+
+function updateStatus(message, state = 'ready') {
+  if (statusText) {
+    statusText.textContent = message;
+  }
+  authStatus?.setAttribute('data-state', state);
+}
+
+function savedUsername() {
+  try {
+    return localStorage.getItem(rememberedUsernameKey) || '';
+  } catch {
+    return '';
+  }
+}
+
+function rememberUsername(username) {
+  try {
+    localStorage.setItem(rememberedUsernameKey, username);
+  } catch {
+    // Storage is optional; authentication must still work.
+  }
+}
+
+function clearRememberedUsername() {
+  try {
+    localStorage.removeItem(rememberedUsernameKey);
+  } catch {
+    // Storage is optional; authentication must still work.
+  }
+}
+
+const lastUsername = savedUsername();
+const loginUsername = loginForm.elements.namedItem('username');
+if (lastUsername && loginUsername && rememberedUser) {
+  loginUsername.value = lastUsername;
+  rememberedUser.textContent = `Using ${lastUsername} · `;
+  const forget = document.createElement('button');
+  forget.type = 'button';
+  forget.className = 'link';
+  forget.textContent = 'forget';
+  forget.addEventListener('click', () => {
+    clearRememberedUsername();
+    loginUsername.value = '';
+    rememberedUser.hidden = true;
+    loginUsername.focus({ preventScroll: true });
+  });
+  rememberedUser.append(forget);
+  rememberedUser.hidden = false;
+}
+
+window.addEventListener('online', () => updateStatus('Back online. Ready when you are.'));
+window.addEventListener('offline', () => updateStatus('You are offline. Check your connection before signing in.', 'offline'));
 
 /* ─────────────────────────────── Password toggles ────────────────────────── */
 
@@ -125,9 +190,61 @@ function updateStrength() {
   if (strengthLabel) {
     strengthLabel.textContent = labels[score];
   }
+
+  const password = registerPassword?.value || '';
+  const checks = {
+    length: password.length >= 10,
+    mixed: /[a-z]/.test(password) && /[A-Z]/.test(password),
+    variety: /\d/.test(password) && /[^a-zA-Z0-9]/.test(password),
+  };
+  passwordRules.forEach((rule) => {
+    rule.dataset.valid = String(checks[rule.dataset.rule]);
+  });
 }
 
 registerPassword?.addEventListener('input', updateStrength);
+confirmPassword?.addEventListener('input', updatePasswordMatch);
+
+function updatePasswordMatch() {
+  if (!matchHint) {
+    return;
+  }
+  if (!confirmPassword.value) {
+    matchHint.textContent = '';
+    return;
+  }
+  const matches = confirmPassword.value === registerPassword.value;
+  matchHint.textContent = matches ? 'Passwords match.' : 'Passwords do not match yet.';
+  matchHint.dataset.valid = String(matches);
+}
+
+document.querySelector('[data-generate-password]')?.addEventListener('click', () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+  const values = new Uint32Array(16);
+  crypto.getRandomValues(values);
+  const generated = Array.from(values, (value) => alphabet[value % alphabet.length]).join('');
+  registerPassword.value = generated;
+  confirmPassword.value = generated;
+  registerPassword.type = 'text';
+  confirmPassword.type = 'text';
+  document.querySelectorAll('#panel-register [data-toggle-password]').forEach((button) => {
+    button.textContent = 'Hide';
+    button.setAttribute('aria-pressed', 'true');
+    button.setAttribute('aria-label', 'Hide password');
+  });
+  updateStrength();
+  updatePasswordMatch();
+  registerPassword.focus({ preventScroll: true });
+});
+
+registerUsername?.addEventListener('input', () => {
+  const username = registerUsername.value.trim();
+  const valid = /^[a-zA-Z0-9_]{3,20}$/.test(username);
+  usernameHint.textContent = username === ''
+    ? '3–20 letters, numbers or underscores.'
+    : valid ? 'Username format looks good.' : 'Use only 3–20 letters, numbers or underscores.';
+  registerUsername.dataset.valid = String(valid);
+});
 
 /* ─────────────────────────────── Form helpers ────────────────────────────── */
 
@@ -177,6 +294,12 @@ loginForm.addEventListener('submit', async (event) => {
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
 
+  if (Date.now() < loginLockedUntil) {
+    const seconds = Math.ceil((loginLockedUntil - Date.now()) / 1000);
+    showError(loginForm, `Too many attempts. Try again in ${seconds} seconds.`);
+    return;
+  }
+
   if (!username) {
     invalidate(usernameInput, 'Enter your username.');
     return;
@@ -189,6 +312,8 @@ loginForm.addEventListener('submit', async (event) => {
 
   const button = loginForm.querySelector('button[type="submit"]');
   setButtonBusy(button, true, 'Signing in…');
+  updateStatus('Checking your account…', 'busy');
+  rememberUsername(username);
 
   try {
     const result = await api('/api/login', {
@@ -201,9 +326,11 @@ loginForm.addEventListener('submit', async (event) => {
   } catch (error) {
     setButtonBusy(button, false);
     showError(loginForm, error.message || 'Could not sign in. Please try again.');
+    updateStatus(error.status === 0 ? 'DrawSpace could not be reached.' : 'We could not sign you in yet.', 'error');
 
     if (error.status === 429) {
       toast('Too many attempts. Please wait a few minutes.', 'warning');
+      loginLockedUntil = Date.now() + 60_000;
     }
   }
 });
@@ -229,6 +356,11 @@ registerForm.addEventListener('submit', async (event) => {
     return;
   }
 
+  if (scorePassword(password) < 3) {
+    invalidate(passwordInput, 'Choose a stronger password with mixed case, a number and a symbol.');
+    return;
+  }
+
   if (password !== confirm) {
     invalidate(confirmInput, 'Those passwords do not match.');
     return;
@@ -236,6 +368,7 @@ registerForm.addEventListener('submit', async (event) => {
 
   const button = registerForm.querySelector('button[type="submit"]');
   setButtonBusy(button, true, 'Creating account…');
+  updateStatus('Setting up your first board…', 'busy');
 
   try {
     const result = await api('/api/register', {
@@ -248,6 +381,7 @@ registerForm.addEventListener('submit', async (event) => {
   } catch (error) {
     setButtonBusy(button, false);
     showError(registerForm, error.message || 'Could not create your account. Please try again.');
+    updateStatus(error.status === 0 ? 'DrawSpace could not be reached.' : 'We could not create your account yet.', 'error');
 
     if (error.status === 409) {
       usernameInput.focus({ preventScroll: true });
@@ -262,6 +396,9 @@ registerForm.addEventListener('submit', async (event) => {
 for (const form of [loginForm, registerForm]) {
   form.addEventListener('input', () => clearError(form));
 }
+
+updateStrength();
+updatePasswordMatch();
 
 /* ──────────────────────────────── Boot ───────────────────────────────────── */
 

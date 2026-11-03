@@ -107,11 +107,17 @@
         <p id="card-subtitle">Pick up your board where you left off.</p>
       </div>
 
+      <div class="auth-status" id="auth-status" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span data-status-text>Ready when you are.</span>
+      </div>
+
       <div id="panel-login" role="tabpanel" aria-labelledby="tab-login">
         <form class="auth-form" id="login-form" novalidate>
           <label class="field">
             <span>Username</span>
             <input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="your_username" required>
+            <span class="field-hint remembered-user" data-remembered-user hidden></span>
           </label>
 
           <label class="field">
@@ -141,7 +147,7 @@
           <label class="field">
             <span>Username</span>
             <input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="your_username" required>
-            <span class="field-hint">3–20 letters, numbers or underscores.</span>
+            <span class="field-hint" data-username-hint>3–20 letters, numbers or underscores.</span>
           </label>
 
           <label class="field">
@@ -156,6 +162,12 @@
             <div class="strength-bars"><span></span><span></span><span></span><span></span></div>
             <span class="strength-label" id="strength-label">Weak</span>
           </div>
+          <ul class="password-rules" aria-label="Password requirements">
+            <li data-rule="length">10+ characters</li>
+            <li data-rule="mixed">Upper and lowercase</li>
+            <li data-rule="variety">Number and symbol</li>
+          </ul>
+          <button class="generate-password link" type="button" data-generate-password>Generate a strong password</button>
 
           <label class="field">
             <span>Confirm password</span>
@@ -163,6 +175,7 @@
               <input type="password" name="confirm" autocomplete="new-password" minlength="10" maxlength="72" placeholder="Repeat your password" required>
               <button class="password-toggle" type="button" data-toggle-password aria-label="Show password" aria-pressed="false">Show</button>
             </span>
+            <span class="match-hint" data-match-hint aria-live="polite"></span>
           </label>
 
           <p class="form-error" role="alert" hidden></p>
