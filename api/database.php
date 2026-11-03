@@ -64,13 +64,22 @@ function db(): PDO
         $user = (string) env('DB_USER', 'postgres');
         $pass = (string) env('DB_PASS', '');
         $sslMode = env_bool('DB_SSL', true) ? 'require' : 'prefer';
+        $endpoint = (string) env('DB_ENDPOINT', '');
+
+        // Neon pooler hosts need the endpoint option when the runtime's
+        // libpq does not support SNI. Derive it from standard Neon hosts so
+        // existing deployments only need the normal DB_* variables.
+        if ($endpoint === '' && preg_match('/^(ep-[a-z0-9-]+?)(?:-pooler)?\./i', $host, $matches) === 1) {
+            $endpoint = $matches[1];
+        }
 
         $dsn = sprintf(
-            'pgsql:host=%s;port=%d;dbname=%s;sslmode=%s',
+            'pgsql:host=%s;port=%d;dbname=%s;sslmode=%s%s',
             $host,
             $port,
             $name,
-            $sslMode
+            $sslMode,
+            $endpoint === '' ? '' : ';options=endpoint%3D' . rawurlencode($endpoint)
         );
 
         $pdo = new PDO($dsn, $user, $pass, [
