@@ -58,6 +58,7 @@ function db(): PDO
 
         @chmod($path, 0600);
     } elseif ($driver === 'postgres' || $driver === 'pgsql') {
+        $databaseUrl = env('DATABASE_URL');
         $host = (string) env('DB_HOST', '127.0.0.1');
         $port = (int) env('DB_PORT', '5432');
         $name = (string) env('DB_NAME', 'drawspace');
@@ -65,6 +66,24 @@ function db(): PDO
         $pass = (string) env('DB_PASS', '');
         $sslMode = env_bool('DB_SSL', true) ? 'require' : 'prefer';
         $endpoint = (string) env('DB_ENDPOINT', '');
+
+        if ($databaseUrl !== null && $databaseUrl !== '') {
+            $parts = parse_url($databaseUrl);
+
+            if ($parts === false || !isset($parts['host'], $parts['user'], $parts['pass'], $parts['path'])) {
+                throw new RuntimeException('DATABASE_URL is invalid.');
+            }
+
+            $host = (string) $parts['host'];
+            $port = (int) ($parts['port'] ?? 5432);
+            $name = ltrim((string) $parts['path'], '/');
+            $user = rawurldecode((string) $parts['user']);
+            $pass = rawurldecode((string) $parts['pass']);
+            $query = [];
+            parse_str((string) ($parts['query'] ?? ''), $query);
+            $sslMode = is_string($query['sslmode'] ?? null) ? $query['sslmode'] : $sslMode;
+            $endpoint = is_string($query['endpoint'] ?? null) ? $query['endpoint'] : $endpoint;
+        }
 
         // Neon pooler hosts need the endpoint option when the runtime's
         // libpq does not support SNI. Derive it from standard Neon hosts so

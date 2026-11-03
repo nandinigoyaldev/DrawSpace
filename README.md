@@ -118,6 +118,7 @@ development, keep using the SQLite configuration above.
 | `DB_SSL`                          | `false`                      | Enable TLS; use `true` for Neon                                                                               |
 | `DB_SSL_VERIFY`                   | `true`                       | Verify the database certificate (set `false` only if your host provides no CA)                               |
 | `DB_SSL_CA`                       | —                            | Path to a CA bundle                                                                                          |
+| `DATABASE_URL`                    | —               | Optional complete PostgreSQL/Neon URL; takes precedence over individual `DB_*` connection values            |
 | `DB_PATH`                         | `storage/drawspace.sqlite`   | SQLite file                                                                                                  |
 | `SESSION_TTL_DAYS`                | `14`                         | Session lifetime, clamped to 1–90                                                                            |
 | `TRUST_PROXY`                     | `false`                      | Set `true` behind a trusted non-Vercel proxy so real client IPs and HTTPS are detected; Vercel is detected automatically |
