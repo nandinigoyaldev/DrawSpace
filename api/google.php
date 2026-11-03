@@ -37,7 +37,7 @@ function google_http(string $url, array $options = []): array
     $body = curl_exec($curl);
     $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
     $error = curl_error($curl);
-    curl_close($curl);
+    unset($curl);
 
     if ($body === false || $error !== '' || $status < 200 || $status >= 300) {
         error_log('[DrawSpace] Google request failed: ' . ($error !== '' ? $error : 'HTTP ' . $status));
