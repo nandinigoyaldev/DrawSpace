@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Try the DrawSpace canvas without creating an account.">
+  <title>Try the canvas · DrawSpace</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/demo.css">
+</head>
+<body class="demo-page">
+  <header class="demo-topbar">
+    <a class="brand" href="/login" aria-label="Back to DrawSpace sign in">
+      <span class="brand-mark" aria-hidden="true">✎</span>
+      <span class="brand-word">Draw<span>Space</span></span>
+    </a>
+    <div class="demo-actions">
+      <span class="demo-badge"><span aria-hidden="true"></span> Demo mode</span>
+      <a class="btn btn-primary" href="/login">Save your board</a>
+    </div>
+  </header>
+  <main class="demo-main">
+    <section class="demo-heading">
+      <p class="eyebrow">No account needed</p>
+      <h1>Make a little <span>magic.</span></h1>
+      <p>Try the canvas with your mouse, finger or stylus. Your sketch stays in this tab and is never uploaded.</p>
+    </section>
+    <section class="demo-board-wrap" aria-label="DrawSpace demo canvas">
+      <div class="demo-toolbar" role="toolbar" aria-label="Demo drawing tools">
+        <button class="demo-tool is-active" type="button" data-tool="pen">Pen</button>
+        <button class="demo-tool" type="button" data-tool="eraser">Eraser</button>
+        <label class="demo-color">Colour <input type="color" id="demo-color" value="#8bc34a"></label>
+        <label class="demo-size">Size <input type="range" id="demo-size" min="2" max="28" value="6"></label>
+        <button class="demo-clear" type="button" id="demo-clear">Clear</button>
+        <button class="demo-download" type="button" id="demo-download">Download PNG</button>
+      </div>
+      <canvas id="demo-canvas" aria-label="Demo drawing canvas">Your browser does not support canvas.</canvas>
+    </section>
+    <p class="demo-note">Demo drawings are temporary. Sign in to create, save and share boards.</p>
+  </main>
+  <script type="module" src="/js/demo.js"></script>
+</body>
+</html>

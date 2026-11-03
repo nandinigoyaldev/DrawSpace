@@ -66,6 +66,8 @@
     { "src": "/assets/(.*)", "dest": "/app/assets/$1" },
     { "src": "/login", "dest": "/app/login.html" },
     { "src": "/login\\.html", "dest": "/app/login.html" },
+    { "src": "/demo", "dest": "/app/demo.html" },
+    { "src": "/demo\\.html", "dest": "/app/demo.html" },
     { "src": "/index\\.html", "dest": "/app/index.html" },
     { "src": "/", "dest": "/app/index.html" },
     { "src": "/(.*)", "dest": "/app/$1" }

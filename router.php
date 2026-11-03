@@ -47,6 +47,11 @@ if ($uri === '/login' || $uri === '/login.html') {
     return true;
 }
 
+if ($uri === '/demo' || $uri === '/demo.html') {
+    serve_file(__DIR__ . '/app/demo.html', 'text/html', true);
+    return true;
+}
+
 if ($uri === '/favicon.ico' || $uri === '/favicon.svg') {
     serve_file(__DIR__ . '/app/assets/favicon.svg', 'image/svg+xml');
     return true;

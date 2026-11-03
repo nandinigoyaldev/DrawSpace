@@ -79,7 +79,7 @@ function db(): PDO
             $port,
             $name,
             $sslMode,
-            $endpoint === '' ? '' : ';options=endpoint%3D' . rawurlencode($endpoint)
+            $endpoint === '' ? '' : ';options=endpoint=' . $endpoint
         );
 
         $pdo = new PDO($dsn, $user, $pass, [
