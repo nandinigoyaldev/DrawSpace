@@ -128,6 +128,21 @@ function validate_password(mixed $raw, string $username): string
     return $raw;
 }
 
+function normalize_email(mixed $raw): string
+{
+    if (!is_string($raw)) {
+        fail(422, 'Enter a recovery email address.');
+    }
+
+    $email = strtolower(trim($raw));
+
+    if ($email === '' || strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        fail(422, 'Enter a valid recovery email address.');
+    }
+
+    return $email;
+}
+
 /* ────────────────────────────────── Sessions ─────────────────────────────── */
 
 function session_ttl_seconds(): int

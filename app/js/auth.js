@@ -34,6 +34,7 @@ const passwordRules = registerForm.querySelectorAll('[data-rule]');
 
 let activeTab = 'login';
 let loginLockedUntil = 0;
+let loginLockTimer = 0;
 const rememberedUsernameKey = 'drawspace_last_username';
 
 function isSubmitting(form) {
@@ -170,10 +171,6 @@ document.querySelectorAll('[data-toggle-password]').forEach((button) => {
   });
 });
 
-document.querySelector('[data-forgot-password]')?.addEventListener('click', () => {
-  showError(loginForm, 'Password recovery is not available yet. Please create a new account or contact the board owner.');
-});
-
 /* ────────────────────────────── Password strength ────────────────────────── */
 
 function scorePassword(password) {
@@ -307,8 +304,7 @@ loginForm.addEventListener('submit', async (event) => {
   const password = passwordInput.value;
 
   if (Date.now() < loginLockedUntil) {
-    const seconds = Math.ceil((loginLockedUntil - Date.now()) / 1000);
-    showError(loginForm, `Too many attempts. Try again in ${seconds} seconds.`);
+    showLockMessage();
     return;
   }
 
@@ -338,7 +334,8 @@ loginForm.addEventListener('submit', async (event) => {
     });
 
     setCsrfToken(result.csrfToken);
-    location.replace(nextPath);
+    updateStatus(`Welcome back, ${result.user.username}. Loading your boards…`, 'success');
+    window.setTimeout(() => location.replace(nextPath), 350);
   } catch (error) {
     setButtonBusy(button, false);
     finishSubmitting(loginForm);
@@ -347,7 +344,8 @@ loginForm.addEventListener('submit', async (event) => {
 
     if (error.status === 429) {
       toast('Too many attempts. Please wait a few minutes.', 'warning');
-      loginLockedUntil = Date.now() + 60_000;
+      loginLockedUntil = Date.now() + ((error.payload?.retryAfter || 60) * 1000);
+      showLockMessage();
     }
   }
 });
@@ -359,7 +357,9 @@ registerForm.addEventListener('submit', async (event) => {
   const usernameInput = registerForm.elements.namedItem('username');
   const passwordInput = registerForm.elements.namedItem('password');
   const confirmInput = registerForm.elements.namedItem('confirm');
+  const emailInput = registerForm.elements.namedItem('email');
   const username = usernameInput.value.trim();
+  const email = emailInput.value.trim();
   const password = passwordInput.value;
   const confirm = confirmInput.value;
 
@@ -370,6 +370,11 @@ registerForm.addEventListener('submit', async (event) => {
 
   if (password.length < 10) {
     invalidate(passwordInput, 'Passwords need at least 10 characters.');
+    return;
+  }
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    invalidate(emailInput, 'Enter a valid recovery email address.');
     return;
   }
 
@@ -394,11 +399,12 @@ registerForm.addEventListener('submit', async (event) => {
   try {
     const result = await api('/api/register', {
       method: 'POST',
-      body: { username, password },
+      body: { username, email, password },
     });
 
     setCsrfToken(result.csrfToken);
-    location.replace(nextPath);
+    updateStatus(`Welcome to DrawSpace, ${result.user.username}. Opening your first board…`, 'success');
+    window.setTimeout(() => location.replace(nextPath), 350);
   } catch (error) {
     setButtonBusy(button, false);
     finishSubmitting(registerForm);
@@ -421,6 +427,22 @@ for (const form of [loginForm, registerForm]) {
 
 updateStrength();
 updatePasswordMatch();
+
+function showLockMessage() {
+  const seconds = Math.max(0, Math.ceil((loginLockedUntil - Date.now()) / 1000));
+  if (seconds === 0) {
+    window.clearInterval(loginLockTimer);
+    loginLockTimer = 0;
+    clearError(loginForm);
+    updateStatus('Ready when you are.');
+    return;
+  }
+  showError(loginForm, `Too many attempts. Try again in ${seconds} seconds.`);
+  updateStatus(`Sign-in paused for ${seconds}s.`, 'error');
+  if (!loginLockTimer) {
+    loginLockTimer = window.setInterval(showLockMessage, 1000);
+  }
+}
 
 /* ──────────────────────────────── Boot ───────────────────────────────────── */
 

@@ -234,8 +234,10 @@ from `/api/me`). Errors are JSON: `{ "error": "…" }`.
 
 | Method   | Endpoint        | Body                     | Description                                          |
 | -------- | --------------- | ------------------------ | ---------------------------------------------------- |
-| `POST`   | `/api/register` | `{username,password}`    | Create an account and a first board, issue a session |
+| `POST`   | `/api/register` | `{username,email,password}` | Create an account and a first board, issue a session |
 | `POST`   | `/api/login`    | `{username,password}`    | Rotate and issue a session                           |
+| `POST`   | `/api/request-reset` | `{email}`            | Send a one-time password reset link                  |
+| `POST`   | `/api/reset-password` | `{token,password}` | Set a new password and revoke old sessions            |
 | `POST`   | `/api/logout`   | —                        | Revoke the current session                           |
 | `GET`    | `/api/me`       | —                        | `{user, csrfToken, expiresAt}`                       |
 | `GET`    | `/api/rooms`    | —                        | Boards owned by the current user                     |
@@ -325,9 +327,15 @@ This project is deliberately small, but the security model is not an afterthough
 
 ### Not implemented (yet)
 
-- Email verification, password reset, 2FA
+- Email verification, 2FA, passkeys
 - Per-board membership/roles beyond owner vs. link-holder
 - Audit log of who cleared a board
+
+Password recovery is available at `/reset`. New accounts must provide a recovery
+email. Configure `RESEND_API_KEY`, `MAIL_FROM`, and `APP_URL` in the deployment
+environment. Resend's `onboarding@resend.dev` sender is suitable for testing
+only and can deliver only to the Resend account email; verify a domain before
+sending recovery links to other users.
 
 ## 📜 License
 

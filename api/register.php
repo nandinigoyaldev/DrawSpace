@@ -12,6 +12,7 @@ verify_same_origin();
 
 $body = read_json_body(8192);
 $username = normalize_username($body['username'] ?? null);
+$email = normalize_email($body['email'] ?? null);
 $password = validate_password($body['password'] ?? null, $username);
 
 $pdo = db();
@@ -21,13 +22,14 @@ rate_limit($pdo, rate_limit_key('register-ip', client_ip()), 5, 3600);
 $createdAt = now();
 
 try {
-    [$userId, $room] = with_transaction($pdo, static function (PDO $pdo) use ($username, $password, $createdAt): array {
+    [$userId, $room] = with_transaction($pdo, static function (PDO $pdo) use ($username, $email, $password, $createdAt): array {
         $insert = $pdo->prepare(
-            'INSERT INTO users (username, password_hash, created_at) VALUES (:username, :hash, :created)'
+            'INSERT INTO users (username, email, password_hash, created_at) VALUES (:username, :email, :hash, :created)'
             . ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? ' RETURNING id' : '')
         );
         $insert->execute([
             ':username' => $username,
+            ':email'    => $email,
             ':hash'     => hash_password($password),
             ':created'  => $createdAt,
         ]);

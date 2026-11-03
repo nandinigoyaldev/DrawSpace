@@ -129,7 +129,7 @@
           </label>
 
           <div class="form-options">
-            <button class="link" type="button" data-forgot-password>Forgot password?</button>
+            <a class="link" href="/reset">Forgot password?</a>
           </div>
 
           <p class="form-error" role="alert" hidden></p>
@@ -149,6 +149,12 @@
             <span>Username</span>
             <input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="your_username" required>
             <span class="field-hint" data-username-hint>3–20 letters, numbers or underscores.</span>
+          </label>
+
+          <label class="field">
+            <span>Recovery email</span>
+            <input type="email" name="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+            <span class="field-hint">Only used for password recovery. We never show it publicly.</span>
           </label>
 
           <label class="field">

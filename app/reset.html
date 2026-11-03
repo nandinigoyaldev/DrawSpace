@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#07060d">
+  <meta name="description" content="Recover your DrawSpace account.">
+  <title>Reset password · DrawSpace</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="auth-page reset-page">
+  <main class="auth reset-shell">
+    <section class="auth-card reset-card" aria-labelledby="reset-title">
+      <a class="brand reset-brand" href="/login">
+        <span class="brand-mark" aria-hidden="true">✎</span>
+        <span class="brand-word">Draw<span>Space</span></span>
+      </a>
+      <div class="card-heading">
+        <h1 id="reset-title">Reset your password</h1>
+        <p data-reset-subtitle>We will send a private reset link to your recovery email.</p>
+      </div>
+      <div class="auth-status" id="reset-status" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span data-status-text>Secure recovery, no fuss.</span>
+      </div>
+
+      <form class="auth-form" data-request-form novalidate>
+        <label class="field">
+          <span>Recovery email</span>
+          <input type="email" name="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+        </label>
+        <p class="form-error" role="alert" hidden></p>
+        <button class="btn btn-primary btn-block" type="submit"><span data-label>Email me a reset link</span></button>
+        <p class="switch-hint"><a class="link" href="/login">Back to sign in</a></p>
+      </form>
+
+      <form class="auth-form" data-reset-form hidden novalidate>
+        <input type="hidden" name="token">
+        <label class="field">
+          <span>New password</span>
+          <span class="password-wrap">
+            <input type="password" name="password" autocomplete="new-password" minlength="10" maxlength="72" placeholder="At least 10 characters" required>
+            <button class="password-toggle" type="button" data-toggle-password aria-label="Show password" aria-pressed="false">Show</button>
+          </span>
+        </label>
+        <label class="field">
+          <span>Confirm new password</span>
+          <input type="password" name="confirm" autocomplete="new-password" minlength="10" maxlength="72" placeholder="Repeat your password" required>
+        </label>
+        <p class="form-error" role="alert" hidden></p>
+        <button class="btn btn-primary btn-block" type="submit"><span data-label>Save new password</span></button>
+        <p class="switch-hint"><a class="link" href="/login">Back to sign in</a></p>
+      </form>
+    </section>
+  </main>
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+  <script type="module" src="/js/reset.js"></script>
+</body>
+</html>

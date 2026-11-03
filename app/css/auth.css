@@ -225,6 +225,27 @@
   color: var(--success);
 }
 
+.reset-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 480px);
+  justify-content: center;
+  align-items: center;
+}
+
+.reset-card {
+  width: 100%;
+}
+
+.reset-brand {
+  display: inline-flex;
+  margin-bottom: 28px;
+}
+
+.reset-card h1 {
+  font-size: clamp(24px, 5vw, 32px);
+  text-transform: uppercase;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-card,
   .auth-glow span,
@@ -632,6 +653,16 @@
 
   .form-options {
     align-items: flex-start;
+  }
+
+  .reset-shell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .reset-card {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
 
