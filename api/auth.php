@@ -192,6 +192,24 @@ function create_session(PDO $pdo, int $userId): array
     return ['token' => $token, 'csrf' => $csrf, 'expires' => $expires];
 }
 
+function google_is_configured(): bool
+{
+    return env('GOOGLE_CLIENT_ID') !== null
+        && env('GOOGLE_CLIENT_SECRET') !== null
+        && env('GOOGLE_REDIRECT_URI') !== null;
+}
+
+function google_redirect_uri(): string
+{
+    $uri = env('GOOGLE_REDIRECT_URI');
+
+    if ($uri === null || !filter_var($uri, FILTER_VALIDATE_URL)) {
+        fail(503, 'Google sign-in is not configured.');
+    }
+
+    return $uri;
+}
+
 /** @return array<string, mixed>|null */
 function current_session(): ?array
 {

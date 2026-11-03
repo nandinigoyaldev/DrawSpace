@@ -97,6 +97,116 @@
   max-width: 600px;
 }
 
+/* Keep the auth shell inside the viewport. The form remains usable on short
+   screens because the card, rather than the document, owns overflow. */
+.auth-page {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.auth {
+  height: 100dvh;
+  min-height: 0;
+  padding: clamp(20px, 4vh, 48px) 40px;
+}
+
+.auth-intro {
+  min-width: 0;
+}
+
+.auth-card {
+  max-height: calc(100dvh - clamp(40px, 8vh, 96px));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.auth-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.auth-card::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+
+.social-auth {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+.social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  border: 2px solid var(--border-strong);
+  border-radius: 0;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 0.12s steps(2), border-color 0.12s steps(2), transform 0.12s steps(2);
+}
+
+.social-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--cyan);
+}
+
+.social-btn:active {
+  transform: translateY(1px);
+}
+
+.social-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.provider-note {
+  margin: 0;
+  color: var(--warning);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: -3px;
+  font-size: 11px;
+}
+
+.form-options .link {
+  font-size: 11px;
+}
+
 .auth-intro h1 .gradient {
   background: linear-gradient(90deg, var(--accent), var(--cyan));
   -webkit-background-clip: text;
@@ -440,7 +550,7 @@
   .auth {
     grid-template-columns: minmax(0, 1fr) 420px;
     gap: 48px;
-    padding: 40px 28px;
+    padding: 28px;
   }
 
   .art-wrap {
@@ -450,6 +560,8 @@
 
 @media (max-width: 860px) {
   .auth {
+    height: auto;
+    min-height: 100dvh;
     grid-template-columns: minmax(0, 440px);
     justify-content: center;
     gap: 0;
@@ -461,6 +573,8 @@
   }
 
   .auth-card {
+    max-height: none;
+    overflow: visible;
     padding: 28px 26px 26px;
   }
 
@@ -471,6 +585,12 @@
 }
 
 @media (max-width: 420px) {
+  .auth-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+  }
+
   .auth {
     padding: 20px 14px;
   }
@@ -482,6 +602,36 @@
 
   .card-heading h2 {
     font-size: 22px;
+  }
+
+  .form-options {
+    align-items: flex-start;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 861px) {
+  .auth {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .auth-intro .brand {
+    margin-bottom: 20px;
+  }
+
+  .auth-intro > p {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  .feature-list {
+    margin-top: 20px;
+    gap: 9px;
+  }
+
+  .auth-card {
+    padding-top: 22px;
+    padding-bottom: 20px;
   }
 }
 

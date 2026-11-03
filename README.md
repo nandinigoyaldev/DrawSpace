@@ -121,6 +121,8 @@ development, keep using the SQLite configuration above.
 | `DB_PATH`                         | `storage/drawspace.sqlite`   | SQLite file                                                                                                  |
 | `SESSION_TTL_DAYS`                | `14`                         | Session lifetime, clamped to 1–90                                                                            |
 | `TRUST_PROXY`                     | `false`                      | Set `true` behind a trusted non-Vercel proxy so real client IPs and HTTPS are detected; Vercel is detected automatically |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | Google OAuth web client credentials; configure only in the hosting provider |
+| `GOOGLE_REDIRECT_URI`             | —               | Exact Google OAuth callback URL, for example `https://your-domain.example/api/google.php?action=callback` |
 
 ### Deploying to Vercel with Neon
 
@@ -144,6 +146,18 @@ Do not paste the full Neon connection string into the repository or commit
 the password. Tables are created automatically on the first API request.
 Deployments that leave `DB_DRIVER=sqlite` on Vercel are rejected because
 Vercel's filesystem is ephemeral.
+
+### Enabling Google sign-in
+
+1. In Google Cloud Console, create an OAuth 2.0 **Web application** client.
+2. Add the exact callback URL from `GOOGLE_REDIRECT_URI` to **Authorized redirect URIs**.
+3. Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` to the
+   Vercel project environment variables for the same deployment environment.
+4. Redeploy and test with a Google account whose email is verified.
+
+Google sign-in uses a server-side authorization-code exchange and stores the
+Google subject in a separate `oauth_accounts` table. It never merges a Google
+identity into an existing password account based only on a matching email.
 
 ## 💡 How it works
 

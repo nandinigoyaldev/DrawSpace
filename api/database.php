@@ -161,6 +161,15 @@ function postgres_schema(): array
             password_hash VARCHAR(255) NOT NULL,
             created_at BIGINT NOT NULL
         )',
+        'CREATE TABLE IF NOT EXISTS oauth_accounts (
+            provider VARCHAR(32) NOT NULL,
+            subject VARCHAR(191) NOT NULL,
+            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            email VARCHAR(254) NOT NULL DEFAULT \'\',
+            created_at BIGINT NOT NULL,
+            PRIMARY KEY (provider, subject),
+            UNIQUE (user_id, provider)
+        )',
         'CREATE TABLE IF NOT EXISTS sessions (
             token_hash CHAR(64) PRIMARY KEY,
             user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -219,6 +228,16 @@ function mysql_schema(): array
             password_hash VARCHAR(255) NOT NULL,
             created_at BIGINT NOT NULL,
             UNIQUE KEY uniq_users_username (username)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        "CREATE TABLE IF NOT EXISTS oauth_accounts (
+            provider VARCHAR(32) NOT NULL,
+            subject VARCHAR(191) NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            email VARCHAR(254) NOT NULL DEFAULT '',
+            created_at BIGINT NOT NULL,
+            PRIMARY KEY (provider, subject),
+            UNIQUE KEY uniq_oauth_user_provider (user_id, provider),
+            CONSTRAINT fk_oauth_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
         "CREATE TABLE IF NOT EXISTS sessions (
@@ -286,6 +305,15 @@ function sqlite_schema(): array
             username TEXT NOT NULL COLLATE NOCASE UNIQUE,
             password_hash TEXT NOT NULL,
             created_at INTEGER NOT NULL
+        )',
+        'CREATE TABLE IF NOT EXISTS oauth_accounts (
+            provider TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            email TEXT NOT NULL DEFAULT \'\',
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (provider, subject),
+            UNIQUE (user_id, provider)
         )',
 
         'CREATE TABLE IF NOT EXISTS sessions (

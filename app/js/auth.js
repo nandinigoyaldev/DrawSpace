@@ -23,6 +23,7 @@ const registerForm = document.getElementById('register-form');
 const registerPassword = registerForm.querySelector('input[name="password"]');
 const strength = document.getElementById('strength');
 const strengthLabel = document.getElementById('strength-label');
+const providerNote = document.getElementById('provider-note');
 
 let activeTab = 'login';
 
@@ -91,6 +92,14 @@ document.querySelectorAll('[data-toggle-password]').forEach((button) => {
     button.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
     input.focus({ preventScroll: true });
   });
+});
+
+document.querySelector('[data-google-login]')?.addEventListener('click', () => {
+  location.assign(`/api/google.php?action=start&next=${encodeURIComponent(nextPath)}`);
+});
+
+document.querySelector('[data-forgot-password]')?.addEventListener('click', () => {
+  showError(loginForm, 'Password recovery is not available yet. Please create a new account or contact the board owner.');
 });
 
 /* ────────────────────────────── Password strength ────────────────────────── */

@@ -25,6 +25,10 @@
       "runtime": "vercel-php@0.9.0",
       "excludeFiles": "{.git,.git/**,**/.git/**,.env,.env.*,storage/**,.vercel/**,node_modules/**,vercel.json,.vercelignore}"
     },
+    "api/google.php": {
+      "runtime": "vercel-php@0.9.0",
+      "excludeFiles": "{.git,.git/**,**/.git/**,.env,.env.*,storage/**,.vercel/**,node_modules/**,vercel.json,.vercelignore}"
+    },
     "api/rooms.php": {
       "runtime": "vercel-php@0.9.0",
       "excludeFiles": "{.git,.git/**,**/.git/**,.env,.env.*,storage/**,.vercel/**,node_modules/**,vercel.json,.vercelignore}"
