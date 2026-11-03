@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 const APP_NAME = 'DrawSpace';
 const APP_VERSION = '1.0.0';
-const SCHEMA_VERSION = '2';
+const SCHEMA_VERSION = '1';
 
 /* ─────────────────────────────── Environment ─────────────────────────────── */
 
