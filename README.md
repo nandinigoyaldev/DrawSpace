@@ -238,6 +238,7 @@ from `/api/me`). Errors are JSON: `{ "error": "…" }`.
 | `POST`   | `/api/login`    | `{username,password}`    | Rotate and issue a session                           |
 | `POST`   | `/api/request-reset` | `{email}`            | Send a one-time password reset link                  |
 | `POST`   | `/api/reset-password` | `{token,password}` | Set a new password and revoke old sessions            |
+| `POST`   | `/api/recovery-email` | `{email}`        | Save or replace the signed-in user's recovery email  |
 | `POST`   | `/api/logout`   | —                        | Revoke the current session                           |
 | `GET`    | `/api/me`       | —                        | `{user, csrfToken, expiresAt}`                       |
 | `GET`    | `/api/rooms`    | —                        | Boards owned by the current user                     |
@@ -336,6 +337,8 @@ email. Configure `RESEND_API_KEY`, `MAIL_FROM`, and `APP_URL` in the deployment
 environment. Resend's `onboarding@resend.dev` sender is suitable for testing
 only and can deliver only to the Resend account email; verify a domain before
 sending recovery links to other users.
+
+Existing accounts can add their recovery email at `/recovery` while signed in.
 
 ## 📜 License
 

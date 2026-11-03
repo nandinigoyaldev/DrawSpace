@@ -33,6 +33,10 @@
       "runtime": "vercel-php@0.9.0",
       "excludeFiles": "{.git,.git/**,**/.git/**,.env,.env.*,storage/**,.vercel/**,node_modules/**,vercel.json,.vercelignore}"
     },
+    "api/recovery-email.php": {
+      "runtime": "vercel-php@0.9.0",
+      "excludeFiles": "{.git,.git/**,**/.git/**,.env,.env.*,storage/**,.vercel/**,node_modules/**,vercel.json,.vercelignore}"
+    },
     "api/rooms.php": {
       "runtime": "vercel-php@0.9.0",
       "excludeFiles": "{.git,.git/**,**/.git/**,.env,.env.*,storage/**,.vercel/**,node_modules/**,vercel.json,.vercelignore}"
@@ -76,6 +80,8 @@
     { "src": "/login\\.html", "dest": "/app/login.html" },
     { "src": "/reset", "dest": "/app/reset.html" },
     { "src": "/reset\\.html", "dest": "/app/reset.html" },
+    { "src": "/recovery", "dest": "/app/recovery.html" },
+    { "src": "/recovery\\.html", "dest": "/app/recovery.html" },
     { "src": "/demo", "dest": "/app/demo.html" },
     { "src": "/demo\\.html", "dest": "/app/demo.html" },
     { "src": "/index\\.html", "dest": "/app/index.html" },

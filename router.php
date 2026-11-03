@@ -52,6 +52,11 @@ if ($uri === '/reset' || $uri === '/reset.html') {
     return true;
 }
 
+if ($uri === '/recovery' || $uri === '/recovery.html') {
+    serve_file(__DIR__ . '/app/recovery.html', 'text/html', true);
+    return true;
+}
+
 if ($uri === '/demo' || $uri === '/demo.html') {
     serve_file(__DIR__ . '/app/demo.html', 'text/html', true);
     return true;

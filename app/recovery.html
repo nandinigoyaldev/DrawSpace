@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#07060d">
+  <meta name="description" content="Add a private recovery email to your DrawSpace account.">
+  <title>Account recovery · DrawSpace</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="auth-page reset-page">
+  <main class="auth reset-shell">
+    <section class="auth-card reset-card" aria-labelledby="recovery-title">
+      <a class="brand reset-brand" href="/">
+        <span class="brand-mark" aria-hidden="true">✎</span>
+        <span class="brand-word">Draw<span>Space</span></span>
+      </a>
+      <div class="card-heading">
+        <h1 id="recovery-title">Protect your account</h1>
+        <p>Save a private email so you can recover your password later.</p>
+      </div>
+      <div class="auth-status" id="recovery-status" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span data-status-text>Checking your session…</span>
+      </div>
+      <form class="auth-form" id="recovery-form" novalidate hidden>
+        <label class="field">
+          <span>Recovery email</span>
+          <input type="email" name="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+          <span class="field-hint">Only used for password recovery. It is never shown on boards.</span>
+        </label>
+        <p class="form-error" role="alert" hidden></p>
+        <button class="btn btn-primary btn-block" type="submit"><span data-label>Save recovery email</span></button>
+        <p class="switch-hint"><a class="link" href="/">Back to your boards</a></p>
+      </form>
+      <p class="switch-hint" id="recovery-sign-in" hidden><a class="link" href="/login">Sign in first</a></p>
+    </section>
+  </main>
+  <script type="module" src="/js/recovery.js"></script>
+</body>
+</html>
