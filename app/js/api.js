@@ -25,7 +25,7 @@ export function getCsrfToken() {
   return csrfToken;
 }
 
-export async function api(path, { method = 'GET', body, signal } = {}) {
+export async function api(path, { method = 'GET', body, signal, timeoutMs = 15000 } = {}) {
   const headers = { Accept: 'application/json' };
 
   if (body !== undefined) {
@@ -37,6 +37,17 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   }
 
   let response;
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const abortFromCaller = () => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', abortFromCaller, { once: true });
+    }
+  }
 
   try {
     response = await fetch(path, {
@@ -45,14 +56,17 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials: 'same-origin',
       cache: 'no-store',
-      signal,
+      signal: controller.signal,
     });
   } catch (error) {
     if (error?.name === 'AbortError') {
-      throw error;
+      throw new ApiError(0, 'The server is taking too long to respond. Please try again.');
     }
 
     throw new ApiError(0, 'Could not reach the server. Check your connection.');
+  } finally {
+    window.clearTimeout(timeout);
+    signal?.removeEventListener('abort', abortFromCaller);
   }
 
   const text = await response.text();

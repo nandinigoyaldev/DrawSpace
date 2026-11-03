@@ -36,6 +36,18 @@ let activeTab = 'login';
 let loginLockedUntil = 0;
 const rememberedUsernameKey = 'drawspace_last_username';
 
+function isSubmitting(form) {
+  if (form.dataset.submitting === 'true') {
+    return true;
+  }
+  form.dataset.submitting = 'true';
+  return false;
+}
+
+function finishSubmitting(form) {
+  form.dataset.submitting = 'false';
+}
+
 /* ────────────────────────────────── Tabs ─────────────────────────────────── */
 
 function showTab(name, { focus = false } = {}) {
@@ -310,6 +322,10 @@ loginForm.addEventListener('submit', async (event) => {
     return;
   }
 
+  if (isSubmitting(loginForm)) {
+    return;
+  }
+
   const button = loginForm.querySelector('button[type="submit"]');
   setButtonBusy(button, true, 'Signing in…');
   updateStatus('Checking your account…', 'busy');
@@ -325,6 +341,7 @@ loginForm.addEventListener('submit', async (event) => {
     location.replace(nextPath);
   } catch (error) {
     setButtonBusy(button, false);
+    finishSubmitting(loginForm);
     showError(loginForm, error.message || 'Could not sign in. Please try again.');
     updateStatus(error.status === 0 ? 'DrawSpace could not be reached.' : 'We could not sign you in yet.', 'error');
 
@@ -366,6 +383,10 @@ registerForm.addEventListener('submit', async (event) => {
     return;
   }
 
+  if (isSubmitting(registerForm)) {
+    return;
+  }
+
   const button = registerForm.querySelector('button[type="submit"]');
   setButtonBusy(button, true, 'Creating account…');
   updateStatus('Setting up your first board…', 'busy');
@@ -380,6 +401,7 @@ registerForm.addEventListener('submit', async (event) => {
     location.replace(nextPath);
   } catch (error) {
     setButtonBusy(button, false);
+    finishSubmitting(registerForm);
     showError(registerForm, error.message || 'Could not create your account. Please try again.');
     updateStatus(error.status === 0 ? 'DrawSpace could not be reached.' : 'We could not create your account yet.', 'error');
 
